@@ -10,8 +10,9 @@ Here I keep python codes and macros for Klayout that I used in designing a photo
 
 0. (Recommended) File -> Load Layer Properties -> Select `LayerPropertyFile_Jaseung` file (This file has pre-defined layers with names.)
 
-1. PathToCPW:
-- This macro converts a path to CPW. 
+1. PathToCPW
+
+  This macro converts a path to CPW, not a stand-alone PCell. To use it,
 - First, draw a path, and select it.
 - Second, go to Edit->Selection->Convert To Pcel.
 - Third, select "PathToCPW".
@@ -22,7 +23,8 @@ Here I keep python codes and macros for Klayout that I used in designing a photo
   Image ==> Image layer
 
 2. MakeCPW_standalone:
-- It creates a PCell for CPW alone. To use it, 
+  
+  This macro creates a PCell for CPW alone. To use it, 
 - First, click "Instance" icon in the toolbar.
 - Second, select "Jaseng_Lib" from 'library' pull-down list.
 - Third, select "MakeCPW" cell from 'cell' pull-down list.
