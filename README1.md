@@ -1,9 +1,10 @@
-# Enter your text here
+<h1>Useful python codes and macros in Klayout for drawing superconducting circuits<h1>
+
 How to use PCell from 'Jaseung_Lib' library
 
-0. File -> Load Layer Properties -> Select 'LayerPropertyFile_Jaseung' file (This file has pre-defined layers for my convience.
+0. File -> Load Layer Properties -> Select 'LayerPropertyFile_Jaseung' file (This file has pre-defined layers.)
 
-0.1 Mactor -> Macro Development -> Click on 'Python' tab -> Inside 'Python' tab, right click -> Add Location -> Select folder 'Klayout-JK' -> If 'Run Macro' pop-up windows appears, click 'yes' to run macros. -> close
+0.1 Macro -> Macro Development -> Click on 'Python' tab -> Inside 'Python' tab, right click -> Add Location -> Select folder 'Klayout-JK' -> If 'Run Macro' pop-up windows appears, click 'yes' to run macros. -> close
 
 1. PathToCPW:
 - This macro converts a path to CPW. 
