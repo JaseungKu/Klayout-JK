@@ -1,0 +1,210 @@
+<?xml version="1.0" encoding="utf-8"?>
+<klayout-macro>
+ <description/>
+ <version/>
+ <category>pymacros</category>
+ <prolog/>
+ <epilog/>
+ <doc/>
+ <autorun>true</autorun>
+ <autorun-early>false</autorun-early>
+ <shortcut/>
+ <show-in-menu>false</show-in-menu>
+ <group-name/>
+ <menu-path/>
+ <interpreter>python</interpreter>
+ <dsl-interpreter-name/>
+ <text>import pya
+import math
+
+"""
+Usage: Draw a path, and select it. Then go to Edit-&gt;Selection-&gt;Convert To Pcel.
+Select PathToCPW. Once the PCell is created, double-click it to change parameters if needed.
+"""
+
+class PathToCPW(pya.PCellDeclarationHelper):
+  """
+  The PCell declaration for PathToCPW
+  """
+
+  def __init__(self):
+
+    # Important: initialize the super class
+    super(PathToCPW, self).__init__()
+
+    # declare the parameters
+    #self.param("l", self.TypeLayer, "Layer", default = pya.LayerInfo(1, 0))
+    self.param("p", self.TypeLayer, "CPW path Layer", default = pya.LayerInfo(0, 2))
+    self.param("k", self.TypeLayer, "Keepout Layer", default = pya.LayerInfo(0, 1))
+    self.param("c", self.TypeLayer, "Image Layer", default = pya.LayerInfo(1, 0))
+    self.param("s", self.TypeShape, "", default = pya.Path.new())
+    self.param("name", self.TypeString,"CPW name", default='PathToCPW')
+    
+    # parameter in um 
+    self.param("cr", self.TypeDouble, "center conductor radius", default = 50)
+    self.param("cw", self.TypeDouble, "c.c width", default = 10)
+    self.param("gw", self.TypeDouble, "gap width", default = 6)
+    self.param("kw", self.TypeDouble, "keepout width", default = 5)
+    self.param("n", self.TypeInt, "Number of points per 360 degree", default = 180)     
+    
+    # this hidden parameter is used to determine whether the radius has changed
+    # or the "s" handle has been moved
+    #self.param("ru", self.TypeDouble, "Radius", default = 0.0, hidden = True)
+    #self.param("rd", self.TypeDouble, "Double radius", readonly = True)
+
+  def display_text_impl(self):
+    # Provide a descriptive text for the cell
+    #return "CPWfromPath(CC width=" + str(self.cw) + ",gap width=" + ('%.3f' % self.gw) + ")"
+    return self.name
+    
+  #def coerce_parameters_impl(self):
+  
+    # We employ coerce_parameters_impl to decide whether the handle or the 
+    # numeric parameter has changed (by comparing against the effective 
+    # radius ru) and set ru to the effective radius. We also update the 
+    # numerical value or the shape, depending on which one has not changed.
+   
+   # rs = None
+   # if isinstance(self.s, pya.DPoint): 
+   #   # compute distance in micron
+   #   rs = self.s.distance(pya.DPoint(0, 0))
+   # if rs != None and abs(self.r-self.ru) &lt; 1e-6:
+   #   self.ru = rs
+   #   self.r = rs 
+   # else:
+   #   self.ru = self.r
+   #   self.s = pya.DPoint(-self.r, 0)
+   # 
+   # self.rd = 2*self.r
+    
+    # n must be larger or equal than 9
+   # if self.n &lt;= 9:
+   #   self.n = 9
+  
+  def can_create_from_shape_impl(self):
+    # Implement the "Create PCell from shape" protocol: we can use any shape which 
+    # has a finite bounding box
+    return self.shape.is_box() or self.shape.is_polygon() or self.shape.is_path()
+  
+  def parameters_from_shape_impl(self):
+    # Implement the "Create PCell from shape" protocol: we set r and l from the shape's 
+    # bounding box width and layer
+    # self.tmp = self.shape.bbox().width() * self.layout.dbu / 2
+    self.l = self.layout.get_info(self.layer)
+    self.s = self.shape.path # read selected path obj.
+                      
+  def transformation_from_shape_impl(self):
+    # Implement the "Create PCell from shape" protocol: we use the center of the shape's
+    # bounding box to determine the transformation
+    return pya.Trans()
+       
+  def produce_impl(self):
+  
+    # This is the main part of the implementation: create the layout
+                                                                                                                                                                                                                                                                                                    
+    # fetch the parameters
+    #ru_dbu = self.ru / self.layout.dbu
+
+    # compute the circle
+    #pts = []
+    #da = math.pi * 2 / self.n
+    #for i in range(0, self.n):
+    #  pts.append(pya.Point.from_dpoint(pya.DPoint(ru_dbu * math.cos(i * da), ru_dbu * math.sin(i * da))))
+    
+    # create the shape
+    #self.cell.shapes(self.l_layer).insert(pya.Polygon(pts))
+
+#    self.s.width = self.cr / self.layout.dbu
+#    self.cell.shapes(self.l_layer).insert(self.s)
+    
+    # Here comes my code
+    
+    # change actual dimension to database unit.
+    cr_dbu = self.cr / self.layout.dbu
+    cw_dbu = self.cw / self.layout.dbu
+    gw_dbu = self.gw / self.layout.dbu
+    kw_dbu = self.kw / self.layout.dbu
+    
+    cr_inner_dbu = cr_dbu - 0.5 * cw_dbu  # Inner radius of center conductor
+    cr_outer_dbu = cr_dbu + 0.5 * cw_dbu  # Outer radius of center conductor
+    gap_inner_dbu = cr_inner_dbu - gw_dbu
+    gap_outer_dbu = cr_outer_dbu + gw_dbu
+    keepout_inner_dbu = gap_inner_dbu - kw_dbu
+    keepout_outer_dbu = gap_outer_dbu + kw_dbu
+    
+    # create three paths based on parameter of selected path
+    cc_path = self.s.dup()
+    gap_path = self.s.dup()
+    keepout_path = self.s.dup()
+    
+    cc_path.width = cw_dbu
+    gap_path.width = cc_path.width + gw_dbu * 2.0
+    keepout_path.width = gap_path.width + kw_dbu * 2.0
+        
+    # path to region
+    cc_region = pya.Region.new(cc_path)
+    gap_region = pya.Region.new(gap_path)
+    keepout_region = pya.Region.new(keepout_path)
+    
+    # do corner rounding
+    cc_region.round_corners(cr_inner_dbu, cr_outer_dbu, self.n)
+    gap_region.round_corners(gap_inner_dbu, gap_outer_dbu, self.n)
+    keepout_region.round_corners(keepout_inner_dbu, keepout_outer_dbu, self.n)
+    
+    # make rounded end to square
+    cc_path_pnt = []
+    
+    for point in self.s.each_point():
+      cc_path_pnt.append(point)
+       
+    patch_cc_start, patch_cc_end = self.getpatch(cc_path, cc_path_pnt)
+    patch_gap_start, patch_gap_end = self.getpatch(gap_path, cc_path_pnt)
+    patch_keepout_start, patch_keepout_end = self.getpatch(keepout_path ,cc_path_pnt)
+     
+    cc_region = cc_region + pya.Region.new(patch_cc_start) + pya.Region.new(patch_cc_end)
+    gap_region = gap_region + pya.Region.new(patch_gap_start) + pya.Region.new(patch_gap_end)
+    keepout_region = keepout_region + pya.Region.new(patch_keepout_start) + pya.Region.new(patch_keepout_end)
+    
+    cc_region.merge()
+    gap_region.merge()
+    keepout_region.merge()          
+    
+    # create shape
+    self.cell.shapes(self.p_layer).insert(cc_path)
+    self.cell.shapes(self.c_layer).insert(gap_region - cc_region)
+    self.cell.shapes(self.k_layer).insert(keepout_region)
+  
+  def getpatch(self, path, path_pnt):
+    x1, y1 = path_pnt[0].x, path_pnt[0].y
+    x2, y2 = path_pnt[1].x, path_pnt[1].y
+    x3, y3 = path_pnt[-1].x, path_pnt[-1].y
+    x4, y4 = path_pnt[-2].x, path_pnt[-2].y
+    
+    w = path.width * 0.5
+    
+    if y1 == y2:
+      if x1 &lt; x2:
+        patch1 = pya.Box.new(x1, y1-w, x1+w, y1+w)
+      else:
+        patch1 = pya.Box.new(x1-w, y1-w, x1, y1+w)
+    else:
+      if y1 &lt; y2:
+        patch1 = pya.Box.new(x1-w, y1, x1+w, y1+w)
+      else:
+        patch1 = pya.Box.new(x1-w, y1-w, x1+w, y1)
+        
+    if y3 == y4:
+      if x3 &lt; x4:
+        patch2 = pya.Box.new(x3, y3-w, x3+w, y3+w)
+      else:
+        patch2 = pya.Box.new(x3-w, y3-w, x3, y3+w)
+    else:
+      if y3 &lt; y4:
+        patch2 = pya.Box.new(x3-w, y3, x3+w, y3+w)
+      else:
+        patch2 = pya.Box.new(x3-w, y3-w, x3+w, y3)
+          
+    return patch1, patch2
+
+</text>
+</klayout-macro>

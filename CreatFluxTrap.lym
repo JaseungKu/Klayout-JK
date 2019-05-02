@@ -1,0 +1,106 @@
+<?xml version="1.0" encoding="utf-8"?>
+<klayout-macro>
+ <description/>
+ <version/>
+ <category>pymacros</category>
+ <prolog/>
+ <epilog/>
+ <doc/>
+ <autorun>false</autorun>
+ <autorun-early>false</autorun-early>
+ <shortcut/>
+ <show-in-menu>false</show-in-menu>
+ <group-name/>
+ <menu-path/>
+ <interpreter>python</interpreter>
+ <dsl-interpreter-name/>
+ <text>import pya
+'''
+Setting:  1. get center coordinates x,y of a patch in the chip coordinate
+          2. make sure each cell has no subcell.
+'''          
+app = pya.Application.instance()
+mw = app.main_window()
+lv = mw.current_view() # layoutview
+cv = lv.active_cellview() # cellview
+ly = cv.layout() # layout that contains cv
+
+########### set parameter ######################
+cell_center_x = 787.5 # cell x-coordinate on CHIP
+cell_center_y = -2885
+#################################################
+
+flux_xoffset = -((cell_center_x + 4.0) / ly.dbu) % (8/ly.dbu)
+flux_yoffset = -((cell_center_y + 4.0) / ly.dbu) % (8/ly.dbu)
+print('flux_xoffset, yoffset', flux_xoffset, flux_yoffset)
+
+imagebbox_layer = ly.layer(0, 3)
+keepout_layer = ly.layer(0, 1)
+fluxtrap_layer = ly.layer(1, 1)
+
+
+lv.transaction("make flux trap")
+
+# Get the selected cell instance. This instance is used for an image on the mask.
+# The cell must not have subcells.
+
+sel = lv.each_object_selected() # sel is ObjectInstPath 
+
+for obj in sel:
+  cell_selected = obj.inst().cell # cell_selected is the cell the selected instance refers to
+ # print(cell_selected.cell_index())
+
+# get image bbox
+for shape in cell_selected.each_shape(imagebbox_layer):
+  imagebbox = shape # there is only one image bbox in image bbox layer.
+
+imagebbox_height = imagebbox.box.height() # in dbu
+imagebbox_width = imagebbox.box.width()
+print('imagebbox width, height',imagebbox_width, imagebbox_height)
+
+# get keepout
+keepout_shapes = cell_selected.shapes(keepout_layer) 
+print('keepout shape num:',keepout_shapes.size())
+
+# get flux instance
+flux_cell = ly.cell('fluxtrapsinglecell')
+flux_cell_index = flux_cell.cell_index()
+print('flux_cell_index', flux_cell_index)
+
+# create flux trap array
+x_disp = -1 * ((imagebbox_width/2.0)//(8.0/ly.dbu) + 1) * (8.0/ly.dbu) + flux_xoffset
+y_disp = -1 * ((imagebbox_height/2.0)//(8.0/ly.dbu) +1) * (8.0/ly.dbu) + flux_yoffset
+print('x_disp, y_disp', x_disp, y_disp)
+
+t = pya.Trans.new(x_disp, y_disp) 
+flux_Cellinstarray = pya.CellInstArray.new(flux_cell_index, t) # CellInstArray created.
+
+nrow = imagebbox_height // (8.0 / ly.dbu) + 2
+ncolumn = imagebbox_width //  (8.0 / ly.dbu) + 2
+print('nrow, ncolumn', nrow, ncolumn)
+
+flux_Cellinstarray.a=(pya.Point(0, 8.0 / ly.dbu))
+flux_Cellinstarray.b=(pya.Point(8.0 / ly.dbu,0))
+flux_Cellinstarray.na=(nrow)
+flux_Cellinstarray.nb=(ncolumn)
+
+cell_selected.insert(flux_Cellinstarray)
+cell_selected.flatten(-1, False)
+
+# create region for boolean operation
+r1 = pya.Region.new(ly.begin_shapes(cell_selected, imagebbox_layer))
+r2 = pya.Region.new(ly.begin_shapes(cell_selected, keepout_layer))
+r3 = pya.Region.new(ly.begin_shapes(cell_selected, fluxtrap_layer))
+
+r4 = r1 &amp; r3 - r2 # boolean operation
+cell_selected.clear(fluxtrap_layer)
+cell_selected.shapes(fluxtrap_layer).insert(r4)
+
+r1.clear()
+r2.clear()
+r3.clear()
+r4.clear()
+
+
+</text>
+</klayout-macro>
