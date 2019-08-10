@@ -32,7 +32,7 @@ class MyLib(pya.Library):
     
     # Create the PCell declarations
     self.layout().register_pcell("PathToCPW", PathToCPW())
-    self.layout().register_pcell("MakeCPW", MakeCPW())
+    self.layout().register_pcell("MakeMeanderCPW", MakeMeanderCPW())
     # That would be the place to put in more PCells ...
     
     # Register us with the name "MyLib".

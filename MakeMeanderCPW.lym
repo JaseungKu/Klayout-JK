@@ -1,0 +1,228 @@
+<?xml version="1.0" encoding="utf-8"?>
+<klayout-macro>
+ <description/>
+ <version/>
+ <category>pymacros</category>
+ <prolog/>
+ <epilog/>
+ <doc/>
+ <autorun>true</autorun>
+ <autorun-early>false</autorun-early>
+ <shortcut/>
+ <show-in-menu>false</show-in-menu>
+ <group-name/>
+ <menu-path/>
+ <interpreter>python</interpreter>
+ <dsl-interpreter-name/>
+ <text>import pya
+import math
+
+"""
+Usage: Click "Instance" icon. Choose "Jaseung_library" and then "cell".
+"""
+
+class MakeMeanderCPW(pya.PCellDeclarationHelper):
+  """
+  The PCell declaration for a CPW
+  """
+
+  def __init__(self):
+
+    # Important: initialize the super class
+    super(MakeMeanderCPW, self).__init__()
+
+    # declare the parameters
+#    self.param("l", self.TypeLayer, "Layer", default = pya.LayerInfo(1, 0))
+    self.param("p", self.TypeLayer, "OUTLINE Layer", default = pya.LayerInfo(0, 2))
+    self.param("k", self.TypeLayer, "KEEPOUT Layer", default = pya.LayerInfo(0, 1))
+    self.param("c", self.TypeLayer, "IMAGE Layer for CPW", default = pya.LayerInfo(1, 0))
+    self.param("i", self.TypeLayer, "IMAGE BBOX Layer", default = pya.LayerInfo(0, 3))
+#    self.param("s", self.TypeShape, "", default = pya.Path.new())
+   
+    self.param("name", self.TypeString, "CPW Name", default='CPW')
+     
+    # parameter in um 
+    self.param("cr", self.TypeDouble, "center conductor radius", default = 100)
+    self.param("cw", self.TypeDouble, "c.c width", default = 10)
+    self.param("gw", self.TypeDouble, "gap width", default = 6)
+    self.param("kw", self.TypeDouble, "keepout width", default = 4)
+    self.param("n", self.TypeInt, "Number of points per 360 degree", default = 72)     
+    
+    self.param("tl", self.TypeDouble, "CPW total length", default = 8000)
+    self.param("numq", self.TypeInt, "Number of quarter turns (even num&gt;=6)", default =12)
+    self.param("bh", self.TypeDouble, "Bounding box height", default = 1600)
+    self.param("bw", self.TypeDouble, "Bounding box width", default = 1000)
+    self.param("xs", self.TypeDouble, "x-coord. of start point", default = 10)
+    self.param("xe", self.TypeDouble, "x-coord. of end point", default = 10)
+    
+    # this hidden parameter is used to determine whether the radius has changed
+    # or the "s" handle has been moved
+    #self.param("ru", self.TypeDouble, "Radius", default = 0.0, hidden = True)
+    #self.param("rd", self.TypeDouble, "Double radius", readonly = True)
+
+  def display_text_impl(self):
+    # Provide a descriptive text for the cell
+  #  return "MakeMeanderCPW(length=" + str(self.tl) + ",gap width=" + ('%.3f' % self.gw) + ")"
+    return self.name
+    
+  def coerce_parameters_impl(self):
+  
+    # We employ coerce_parameters_impl to decide whether the handle or the 
+    # numeric parameter has changed (by comparing against the effective 
+    # radius ru) and set ru to the effective radius. We also update the 
+    # numerical value or the shape, depending on which one has not changed.
+   
+   # rs = None
+   # if isinstance(self.s, pya.DPoint): 
+   #   # compute distance in micron
+   #   rs = self.s.distance(pya.DPoint(0, 0))
+   # if rs != None and abs(self.r-self.ru) &lt; 1e-6:
+   #   self.ru = rs
+   #   self.r = rs 
+   # else:
+   #   self.ru = self.r
+   #   self.s = pya.DPoint(-self.r, 0)
+   # 
+   # self.rd = 2*self.r
+    
+    # n must be larger or equal than 9
+   # if self.n &lt;= 9:
+   #   self.n = 9
+
+
+   # cr must be smaller than the length of each segment. segment is the line connecting two ajacent 
+    
+    # number of quarter turns must be even, and equal or larger than 6.
+    if self.numq % 2 == 1:
+      self.numq = self.numq -1  
+    
+    if self.numq &lt;6:
+      self.numq = 6
+      
+    # Bounding box height must be larger than N * r.
+    while self.numq * self.cr &gt; self.bh:
+      self.numq += -2
+    
+    # width of meander should be larger than 4 times radius
+    path_len = self.tl + (2-math.pi/2) * self.cr * self.numq
+    meander_height = self.numq * self.cr
+    extra_len = self.bh - meander_height
+    
+    # find width of meander, W
+    W = (path_len - extra_len - self.numq * self.cr - math.fabs(self.xs) - math.fabs(self.xe)) / (self.numq/2-1)
+    
+    if 4 * self.cr &gt; W:
+      self.cr = W / 4
+          
+  def can_create_from_shape_impl(self):
+    # Implement the "Create PCell from shape" protocol: we can use any shape which 
+    # has a finite bounding box
+    return self.shape.is_box() or self.shape.is_polygon() or self.shape.is_path()
+  
+  #def parameters_from_shape_impl(self):
+    # Implement the "Create PCell from shape" protocol: we set r and l from the shape's 
+    # bounding box width and layer
+    # self.tmp = self.shape.bbox().width() * self.layout.dbu / 2
+    #self.l = self.layout.get_info(self.layer)
+    #self.s = self.shape.path # read selected path obj.
+                      
+  #def transformation_from_shape_impl(self):
+    # Implement the "Create PCell from shape" protocol: we use the center of the shape's
+    # bounding box to determine the transformation
+    #return pya.Trans(self.shape.bbox().center())
+       
+  def produce_impl(self):
+
+    # Here comes my code
+         
+    # create a path
+    cc_dpath = self.create_path()  # in um unit
+        
+    # create two more paths : gap and keepout
+    gap_dpath = cc_dpath.dup()
+    keepout_dpath = cc_dpath.dup()
+    
+    # set width of each path
+    cc_dpath.width = self.cw 
+    gap_dpath.width = cc_dpath.width + self.gw * 2.0 
+    keepout_dpath.width = gap_dpath.width + self.kw * 2.0  
+  
+     # round path
+    cc_dpath_rounded = cc_dpath.round_corners(self.cr, self.n, self.layout.dbu/2.0)
+    gap_dpath_rounded = gap_dpath.round_corners(self.cr, self.n, self.layout.dbu/2.0)
+    keepout_dpath_rounded = keepout_dpath.round_corners(self.cr, self.n, self.layout.dbu/2.0)
+                
+    # turn path to region to do boolean operation
+    cc_region = pya.Region.new(pya.Path.new(cc_dpath_rounded.to_itype(self.layout.dbu)))  # to_itype method to translate the floating-point coordinate path in micron units to an integer-coordinate path in database units.
+    gap_region = pya.Region.new(pya.Path.new(gap_dpath_rounded.to_itype(self.layout.dbu)))
+    keepout_region = pya.Region.new(pya.Path.new(keepout_dpath_rounded.to_itype(self.layout.dbu)))
+ 
+    # create shape
+    self.cell.shapes(self.p_layer).insert(pya.Path.new(cc_dpath.to_itype(self.layout.dbu)))
+    self.cell.shapes(self.c_layer).insert(gap_region - cc_region)
+    self.cell.shapes(self.k_layer).insert(keepout_region)  
+    
+    # create an image bounding box in "Image BBox" layer, based on the given height and width
+    lower_left_x, lower_left_y = -self.bw / 2.0, -self.bh / 2.0
+    upper_right_x, upper_right_y = self.bw / 2.0, self.bh / 2.0
+    Dibbox = pya.DBox.new(lower_left_x, lower_left_y, upper_right_x, upper_right_y)
+  
+    self.cell.shapes(self.i_layer).insert(Dibbox.to_itype(self.layout.dbu))
+    
+  def create_path(self):
+  # I assume the path is centered with respect to origin (0,0)
+   
+    path_len = self.tl + (2.0-math.pi/2.0) * self.cr * self.numq  # in um
+    
+    meander_height = self.numq * self.cr
+    extra_len = self.bh - meander_height
+    
+    # find width of meander, W
+    W = (path_len - extra_len - self.numq * self.cr - (math.fabs(self.xs)+ self.sign(self.xs)*(-1)**(self.numq //2)*self.xe)) / (self.numq/2-1)
+    
+    # create path points
+    pts = []
+    delta = [] # delta vector
+    
+    if self.xs &gt;= 0:
+      startsign = -1
+    else:
+      startsign = 1
+      
+    delta.append(pya.DPoint.new(0, self.cr))
+    delta.append(pya.DPoint.new(W /2 * startsign - self.xs, 0))
+    
+    for i in range(2, self.numq - 1):
+      if i % 2 == 0:
+        delta.append(delta[0] * 2)
+      else:
+        delta.append(pya.DPoint.new(W,0) * startsign * (-1)**(i//2))
+
+    delta.append(pya.DPoint.new (self.xe - W / 2 * (-1)**(self.numq/2) * startsign, 0))
+    delta.append(pya.DPoint.new(0, self.cr))
+    
+    # create meander path except extra length
+    pts.append(pya.DPoint.new(self.xs, -meander_height / 2.0))
+    for i in range(0, self.numq + 1):
+      pts.append(pts[i] + delta[i])
+      
+    # add extra length 
+    pts.insert(0, pya.DPoint.new(self.xs, -meander_height / 2.0 - extra_len / 2.0))
+#    pts.append(pya.Point.new(xe_dbu, meander_height_dbu/2 + extra_len_dbu/2))
+    pts.append(pts[-1] + pya.DPoint.new(0, extra_len / 2.0))
+    
+    createdpath = pya.DPath.new(pts, 1) # in um 
+  
+    return createdpath
+  
+  def sign(self, x):
+    if x&gt;=0:
+      return 1
+    else:
+      return -1  
+      
+    
+        
+
+</text>
+</klayout-macro>
