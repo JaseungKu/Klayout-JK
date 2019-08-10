@@ -8,9 +8,9 @@ Here I keep python codes and macros for Klayout that I used in designing a photo
 
 ### How to use PCell from "Jaseung_Lib" library
 
-1. Load property file 
+1. Load property file (Recommended)  
 File -> Load Layer Properties -> Select *LayerPropertyFile* file 
-
+  
 2. PathToCPW  
 This macro converts a path to CPW, not a stand-alone PCell. To use it,  
 First, draw a path, and select it.     
