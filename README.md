@@ -16,6 +16,7 @@ Here I keep python codes and macros for Klayout that I used in designing a photo
    Third, select "PathToCPW".  
 
    By defaul, four polygons are created and placed into three layers.
+   
    Original path ==> OUTLINE layer
    KEEPOUT ==> KEEPOUT layer  
    IMAGE ==> IMAGE layer  
