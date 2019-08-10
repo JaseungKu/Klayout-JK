@@ -7,22 +7,24 @@ Here I keep python codes and macros for Klayout that I used in designing a photo
 2. In Klayout, Macro -> Macro Development -> Click on "Python" tab -> Inside "Python" tab, right click -> Add Location -> Select folder *Klayout-JK* -> If "Run Macro" pop-up windows appears, click "yes" to run macros. -> close
 
 ### How to use PCell from "Jaseung_Lib" library
-0. (Recommended) File -> Load Layer Properties -> Select *LayerPropertyFile* file 
 
-1. PathToCPW  
+1. Load property file 
+File -> Load Layer Properties -> Select *LayerPropertyFile* file 
+
+2. PathToCPW  
 This macro converts a path to CPW, not a stand-alone PCell. To use it,  
 First, draw a path, and select it.     
 Second, go to Edit -> Selection -> Convert To Pcel.  
 Third, select "PathToCPW".  
 
-2. MakeMeanderCPW
+3. MakeMeanderCPW
 This macro creates a PCell for CPW alone. To use it,   
 First, click "Instance" icon in the toolbar.  
 Second, select "Jaseng_Lib" from 'library' pull-down list.  
 Third, select "MakeMeanderCPW" cell from 'cell' pull-down list.  
 Fourth, click on "PCell" tab to enter parameters.  
 
-3. creatFluxTrap  
+4. creatFluxTrap  
 Flux trap arrays are created in a selected cell.     
 Need a cell called "fluxtrapsinglecell", which has only 4x4um^2 square in flux trap layer.  
 Need to put x and y center positions of the cell in the CHIP coordinate in the code.  
