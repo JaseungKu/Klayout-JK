@@ -7,7 +7,7 @@ Here I keep python codes and macros for Klayout that I used in designing a photo
 2. In Klayout, Macro -> Macro Development -> Click on "Python" tab -> Inside "Python" tab, right click -> Add Location -> Select folder *Klayout-JK* -> If "Run Macro" pop-up windows appears, click "yes" to run macros. -> close
 
 ### How to use PCell from "Jaseung_Lib" library
-0. (Recommended) File -> Load Layer Properties -> Select *LayerPropertyFile_Jaseung* file (This file has pre-defined layers with names.)
+0. (Recommended) File -> Load Layer Properties -> Select *LayerPropertyFile* file (This file has pre-defined layers with names.)
 
 1. PathToCPW  
    This macro converts a path to CPW, not a stand-alone PCell. To use it,  
@@ -16,15 +16,15 @@ Here I keep python codes and macros for Klayout that I used in designing a photo
    Third, select "PathToCPW".  
 
    By defaul, four polygons are created and placed into three layers.
-   Original path, rounded path ==> CPW path layer  
-   Keepout ==> Keepout layer  
-   Image ==> Image layer  
+   Original path ==> OUTLINE layer
+   KEEPOUT ==> KEEPOUT layer  
+   IMAGE ==> IMAGE layer  
 
-2. MakeCPW_standalone  
+2. MakeMeanderCPW_standalone  
    This macro creates a PCell for CPW alone. To use it,   
    First, click "Instance" icon in the toolbar.  
    Second, select "Jaseng_Lib" from 'library' pull-down list.  
-   Third, select "MakeCPW" cell from 'cell' pull-down list.  
+   Third, select "MakeMeanderCPW" cell from 'cell' pull-down list.  
    Fourth, click on "PCell" tab to enter parameters.  
 
 3. creatFluxTrap  
