@@ -1,6 +1,6 @@
 ## Useful python codes and macros in Klayout for drawing superconducting circuits
 
-Here I keep python codes and macros for Klayout that I used in designing a photomask layout. The general design rule in creating a mask using Klayout is decribed in *chip_design_run.odt*. Below, I explain how to use PCells and macros.
+Here I keep python codes and macros for Klayout that I used in designing a photomask layout. The general design rule in creating a mask using Klayout is decribed in *chip_design_run.odt*. Below, I explain how to use PCells.
 
 ### Installing
 1. Download *Klayout-JK.zip* and uncompress it.
