@@ -17,8 +17,8 @@ First, draw a path, and select it.
 Second, go to Edit -> Selection -> Convert To Pcel.  
 Third, select "PathToCPW".  
 
-3. MakeMeanderCPW
-This macro creates a PCell for CPW alone. To use it,   
+3. MakeMeanderCPW  
+ This macro creates a PCell for CPW alone. To use it,   
 First, click "Instance" icon in the toolbar.  
 Second, select "Jaseng_Lib" from 'library' pull-down list.  
 Third, select "MakeMeanderCPW" cell from 'cell' pull-down list.  
