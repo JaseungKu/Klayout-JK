@@ -1,4 +1,4 @@
-## Useful python codes and macros in Klayout for drawing superconducting circuits
+## Useful python macros in Klayout for drawing superconducting circuits
 
 Here I keep python codes and macros for Klayout that I used in designing a photomask layout. The general design rule in creating a mask using Klayout is decribed in *chip_design_run.odt*. Below, I explain how to use PCells.
 
@@ -17,8 +17,8 @@ First, draw a path, and select it.
 Second, go to Edit -> Selection -> Convert To Pcel.  
 Third, select "PathToCPW".  
 
-3. MakeMeanderCPW
-This macro creates a PCell for CPW alone. To use it,   
+3. MakeMeanderCPW  
+ This macro creates a PCell for CPW alone. To use it,   
 First, click "Instance" icon in the toolbar.  
 Second, select "Jaseng_Lib" from 'library' pull-down list.  
 Third, select "MakeMeanderCPW" cell from 'cell' pull-down list.  
