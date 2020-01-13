@@ -24,7 +24,7 @@ Second, select "Jaseng_Lib" from 'library' pull-down list.
 Third, select "MakeMeanderCPW" cell from 'cell' pull-down list.  
 Fourth, click on "PCell" tab to enter parameters.  
 
-4. CreatFluxTrap  
+4. CreateFluxTrap  
 Flux trap holes are created in the selected cell.     
-First, select a cell instance where you want to create flux trap holes. 
+First, select a cell instance where you want to create flux trap holes.  
 Second, run the CreateFluxTrap macro: Macros-> Create Flux Trap
