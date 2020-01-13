@@ -2,8 +2,8 @@
 
 Here I keep python codes and macros for Klayout that I used in designing a photomask layout. The general design rule in creating a mask using Klayout is decribed in *chip_design_run.odt*. Below, I explain how to use macros.
 
-### Installing
-1. Download *Klayout-JK.zip* and uncompress it.
+### Install
+1. Download *Klayout-JK.zip* and uncompress it. Or clone Klayout-JK repository.
 2. In Klayout, Macro -> Macro Development -> Click on "Python" tab -> Inside "Python" tab, right click -> Add Location -> Select folder *Klayout-JK* -> If "Run Macro" pop-up windows appears, click "yes" to run macros. -> close
 
 ### How to use PCell from "Jaseung_Lib" library
