@@ -14,18 +14,17 @@ File -> Load Layer Properties -> Select *LayerPropertyFile* file
 2. PathToCPW  
 This macro converts a path to CPW, not a stand-alone PCell. To use it,  
 First, draw a path, and select it.     
-Second, go to Edit -> Selection -> Convert To Pcel.  
+Second, go to Edit -> Selection -> Convert To PCell.  
 Third, select "PathToCPW".  
 
 3. MakeMeanderCPW  
- This macro creates a PCell for CPW alone. To use it,   
+This macro creates a PCell for CPW alone. To use it,   
 First, click "Instance" icon in the toolbar.  
 Second, select "Jaseng_Lib" from 'library' pull-down list.  
 Third, select "MakeMeanderCPW" cell from 'cell' pull-down list.  
 Fourth, click on "PCell" tab to enter parameters.  
 
-4. creatFluxTrap  
-Flux trap arrays are created in a selected cell.     
-Need a cell called "fluxtrapsinglecell", which has only 4x4um^2 square in flux trap layer.  
-Need to put x and y center positions of the cell in the CHIP coordinate in the code.  
-A cell must not have child cells.  
+4. CreatFluxTrap  
+Flux trap holes are created in the selected cell.     
+First, select a cell instance where you want to create flux trap holes. 
+Second, run the CreateFluxTrap macro: Macros-> Create Flux Trap
