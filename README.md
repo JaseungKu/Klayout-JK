@@ -6,7 +6,7 @@ Here I keep python codes and macros for Klayout that I used in designing a photo
 1. Download *Klayout-JK.zip* and uncompress it. Or clone Klayout-JK repository.
 2. In Klayout, Macro -> Macro Development -> Click on "Python" tab -> Inside "Python" tab, right click -> Add Location -> Select folder *Klayout-JK* -> If "Run Macro" pop-up windows appears, click "yes" to run macros. -> close
 
-### How to use PCell from "Jaseung_Lib" library
+### How to create a PCell from "Jaseung_Lib" library
 
 1. Load property file (Recommended)   
 File -> Load Layer Properties -> Select *LayerPropertyFile* file 
@@ -24,7 +24,8 @@ Second, select "Jaseng_Lib" from 'library' pull-down list.
 Third, select "MakeMeanderCPW" cell from 'cell' pull-down list.  
 Fourth, click on "PCell" tab to enter parameters.  
 
-4. CreateFluxTrap  
+### How to create flux trap holes on a selected cell
+1. CreateFluxTrap  
 Flux trap holes are created in the selected cell instance.     
 First, select a cell instance where you want to create flux trap holes.  
 Second, run the CreateFluxTrap macro: Macros-> Create Flux Trap
