@@ -1,0 +1,156 @@
+<?xml version="1.0" encoding="utf-8"?>
+<klayout-macro>
+ <description/>
+ <version/>
+ <category>pymacros</category>
+ <prolog/>
+ <epilog/>
+ <doc/>
+ <autorun>false</autorun>
+ <autorun-early>false</autorun-early>
+ <shortcut/>
+ <show-in-menu>false</show-in-menu>
+ <group-name/>
+ <menu-path/>
+ <interpreter>python</interpreter>
+ <dsl-interpreter-name/>
+ <text># Jaseung Ku, Jan 2020
+# Under dev....
+
+import pya
+import math
+
+class MakeTromboneCPW(pya.PCellDeclarationHelper):
+  """
+  The PCell declaration to make a "trombone" CPW.
+  
+  Usage: Click "Instance" icon. Choose "Jaseung_library" and then "cell".
+  """
+
+  def __init__(self):
+
+    # Important: initialize the super class
+    super(MakeTromboneCPW, self).__init__()
+
+    # declare the parameters
+    self.param("p", self.TypeLayer, "OUTLINE Layer", default = pya.LayerInfo(0, 2))
+    self.param("k", self.TypeLayer, "KEEPOUT Layer", default = pya.LayerInfo(0, 1))
+    self.param("c", self.TypeLayer, "IMAGE Layer for CPW", default = pya.LayerInfo(1, 0))
+    self.param("i", self.TypeLayer, "IMAGE BBOX Layer", default = pya.LayerInfo(0, 3))
+    self.param("name", self.TypeString, "CPW Name", default='CPW')
+     
+    # parameter in um 
+    self.param("cr", self.TypeDouble, "center conductor radius", default = 100)
+    self.param("cw", self.TypeDouble, "c.c width", default = 10)
+    self.param("gw", self.TypeDouble, "gap width", default = 6)
+    self.param("kw", self.TypeDouble, "keepout width", default = 4)
+    self.param("n", self.TypeInt, "Number of points per 360 degree", default = 72)     
+    
+    self.param("tl", self.TypeDouble, "CPW total length", default = 8000)
+    self.param("bw", self.TypeDouble, "Bounding box width", default = 1000)
+    self.param("bh", self.TypeDouble, "Bounding box height", default = 1600)
+     
+    # this hidden parameter is used to determine whether the radius has changed
+    # or the "s" handle has been moved
+    #self.param("ru", self.TypeDouble, "Radius", default = 0.0, hidden = True)
+    #self.param("rd", self.TypeDouble, "Double radius", readonly = True)
+
+  def display_text_impl(self):
+    # Provide a descriptive text for the cell
+  #  return "MakeMeanderCPW(length=" + str(self.tl) + ",gap width=" + ('%.3f' % self.gw) + ")"
+    return self.name
+    
+  def coerce_parameters_impl(self):
+  
+    # We employ coerce_parameters_impl to decide whether the handle or the 
+    # numeric parameter has changed (by comparing against the effective 
+    # radius ru) and set ru to the effective radius. We also update the 
+    # numerical value or the shape, depending on which one has not changed.
+         
+    if self.tl &lt; math.pi * self.cr:  # total length must be longer than half-circle of CPW
+      self.tl = math.pi * self.cr   # increase total length without touching radius
+    
+    if self.bh/2 &lt; self.cr:  # image bounding box height must be larger than diameter
+      self.bh = (self.cr + self.cw/2 + self.gw + self.kw) * 2 + 10 # increase bounding box height without touching radius
+      
+    if self.bw &lt; (self.tl - math.pi *self.cr)/2 + self.cr:  # bbox width must not be too small
+      self.bw = (self.tl - math.pi *self.cr)/2 + self.cr + self.cw/2 + self.gw + self.kw + 10# increase bounding box width witout touching radius
+         
+  def can_create_from_shape_impl(self):
+    # Implement the "Create PCell from shape" protocol: we can use any shape which 
+    # has a finite bounding box
+    return self.shape.is_box() or self.shape.is_polygon() or self.shape.is_path()
+  
+  #def parameters_from_shape_impl(self):
+    # Implement the "Create PCell from shape" protocol: we set r and l from the shape's 
+    # bounding box width and layer
+    # self.tmp = self.shape.bbox().width() * self.layout.dbu / 2
+    #self.l = self.layout.get_info(self.layer)
+    #self.s = self.shape.path # read selected path obj.
+                      
+  #def transformation_from_shape_impl(self):
+    # Implement the "Create PCell from shape" protocol: we use the center of the shape's
+    # bounding box to determine the transformation
+    #return pya.Trans(self.shape.bbox().center())
+       
+  def produce_impl(self):
+
+    # Here comes my code
+         
+    # create a path
+    cc_dpath = self.create_path()  # in um unit
+        
+    # create two more paths : gap and keepout
+    gap_dpath = cc_dpath.dup()
+    keepout_dpath = cc_dpath.dup()
+    
+    # set width of each path
+    cc_dpath.width = self.cw 
+    gap_dpath.width = cc_dpath.width + self.gw * 2.0 
+    keepout_dpath.width = gap_dpath.width + self.kw * 2.0  
+  
+     # round path
+    cc_dpath_rounded = cc_dpath.round_corners(self.cr, self.n, self.layout.dbu/2.0)
+    gap_dpath_rounded = gap_dpath.round_corners(self.cr, self.n, self.layout.dbu/2.0)
+    keepout_dpath_rounded = keepout_dpath.round_corners(self.cr, self.n, self.layout.dbu/2.0)
+                
+    # turn path to region to do boolean operation
+    cc_region = pya.Region.new(pya.Path.new(cc_dpath_rounded.to_itype(self.layout.dbu)))  # to_itype method to translate the floating-point coordinate path in micron units to an integer-coordinate path in database units.
+    gap_region = pya.Region.new(pya.Path.new(gap_dpath_rounded.to_itype(self.layout.dbu)))
+    keepout_region = pya.Region.new(pya.Path.new(keepout_dpath_rounded.to_itype(self.layout.dbu)))
+ 
+    # create shape
+    self.cell.shapes(self.p_layer).insert(pya.Path.new(cc_dpath.to_itype(self.layout.dbu)))
+    self.cell.shapes(self.c_layer).insert(gap_region - cc_region)
+    self.cell.shapes(self.k_layer).insert(keepout_region)  
+    
+    # create an image bounding box in "Image BBox" layer
+    path_bbox = cc_dpath.bbox()
+    Dibbox = pya.DBox.new(path_bbox.left, -self.bh/2, path_bbox.left + self.bw, self.bh/2)
+  
+    self.cell.shapes(self.i_layer).insert(Dibbox.to_itype(self.layout.dbu))
+    
+  def create_path(self):
+    '''
+     Create a path that will turn into a rounded CPW
+     '''
+    # I assume the origin (0,0) is at the bottom-left corner of the path.
+      
+    # create path consisting of four points at the corner of a rectangle, w x h
+    w = (self.tl - math.pi * self.cr)/2 + self.cr
+    h = 2 * self.cr
+    
+    pts = [pya.DPoint.new(0,0), pya.DPoint.new(w, 0), pya.DPoint.new(w, h), pya.DPoint.new(0, h)]
+    
+    # create a path
+    createdpath = pya.DPath.new(pts, 1) # in um 
+    
+    # move origin to the center of image bounding box = Adjuest cell origint to center
+    createdpath = createdpath.move(pya.DVector(-self.bw/2, -h/2))
+    
+    return createdpath
+    
+        
+
+</text>
+</klayout-macro>
