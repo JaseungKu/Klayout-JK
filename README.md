@@ -25,7 +25,7 @@ Third, select "MakeMeanderCPW" cell from 'cell' pull-down list.
 Fourth, click on "PCell" tab to enter parameters.  
 
 4. MakeTromboneCPW
-This macro creates a PCell for a trombone-shaped CPW alone. The cell origin is automatically centered. The usage is the same as MakeMeanderCPW.
+This macro creates a PCell for a trombone-shaped CPW alone. The cell origin is automatically centered. The instructio is the same as MakeMeanderCPW.
 
 ### How to use macros
 1. CreateFluxTrap  
