@@ -33,7 +33,7 @@ Flux trap holes are created in the selected cell instance.
 First, select a cell instance where you want to create flux trap holes.  
 Second, run the CreateFluxTrap macro: Macros-> Create Flux Trap
 
-2. center_cell_origin
-This is a shortcut to adjust a cell origin to the center. To use it,
-First, select a cell instance.
+2. Center_cell_origin  
+This is a shortcut to adjust a cell origin to the center. To use it,  
+First, select a cell instance.  
 Second, run center_cell_origin macro: Macros -> Center cell origin
