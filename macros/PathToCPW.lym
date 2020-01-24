@@ -100,7 +100,7 @@ class PathToCPW(pya.PCellDeclarationHelper):
     keepout_region = pya.Region.new(pya.Path.new(keepout_dpath_rounded.to_itype(self.layout.dbu)))
  
     # create shape
-    self.cell.shapes(self.p_layer).insert(pya.Path.new(cc_dpath.to_itype(self.layout.dbu)))
+    #self.cell.shapes(self.p_layer).insert(pya.Path.new(cc_dpath.to_itype(self.layout.dbu)))
     self.cell.shapes(self.c_layer).insert(gap_region - cc_region)
     self.cell.shapes(self.k_layer).insert(keepout_region)
 
