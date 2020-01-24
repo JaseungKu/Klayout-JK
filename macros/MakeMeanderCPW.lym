@@ -50,8 +50,8 @@ class MakeMeanderCPW(pya.PCellDeclarationHelper):
     
     self.param("tl", self.TypeDouble, "CPW total length", default = 8000)
     self.param("numq", self.TypeInt, "Number of quarter turns (even num&gt;=6)", default =12)
+    self.param("bw", self.TypeDouble, "Bounding box width", default = 2000)
     self.param("bh", self.TypeDouble, "Bounding box height", default = 1600)
-    self.param("bw", self.TypeDouble, "Bounding box width", default = 1000)
     self.param("xs", self.TypeDouble, "x-coord. of start point", default = 10)
     self.param("xe", self.TypeDouble, "x-coord. of end point", default = 10)
     
@@ -158,7 +158,7 @@ class MakeMeanderCPW(pya.PCellDeclarationHelper):
     keepout_region = pya.Region.new(pya.Path.new(keepout_dpath_rounded.to_itype(self.layout.dbu)))
  
     # create shape
-    self.cell.shapes(self.p_layer).insert(pya.Path.new(cc_dpath.to_itype(self.layout.dbu)))
+#    self.cell.shapes(self.p_layer).insert(pya.Path.new(cc_dpath.to_itype(self.layout.dbu)))
     self.cell.shapes(self.c_layer).insert(gap_region - cc_region)
     self.cell.shapes(self.k_layer).insert(keepout_region)  
     
