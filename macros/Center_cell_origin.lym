@@ -39,6 +39,7 @@ def center_cell_origin():
   #lv.transaction("Adjust origint to the center") 
 
   layerlist = ly.layer_indexes()
+  layerlist.append(ly.guiding_shape_layer())
   
   # Get the selected cell instances.
   sel = lv.each_object_selected() # Iterate over selected objects and yield ObjectInstPath objects.
