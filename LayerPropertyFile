@@ -85,5 +85,39 @@
   <name/>
   <source>'FLUX TRAP' 1/1@1</source>
  </properties>
+ <properties>
+  <frame-color>#c080ff</frame-color>
+  <fill-color>#c080ff</fill-color>
+  <frame-brightness>0</frame-brightness>
+  <fill-brightness>0</fill-brightness>
+  <dither-pattern>I5</dither-pattern>
+  <line-style/>
+  <valid>true</valid>
+  <visible>true</visible>
+  <transparent>false</transparent>
+  <width>1</width>
+  <marked>false</marked>
+  <xfill>false</xfill>
+  <animation>0</animation>
+  <name/>
+  <source>'Ground Strap - SiO2' 2/0@1</source>
+ </properties>
+ <properties>
+  <frame-color>#ff0000</frame-color>
+  <fill-color>#ff0000</fill-color>
+  <frame-brightness>0</frame-brightness>
+  <fill-brightness>0</fill-brightness>
+  <dither-pattern>I9</dither-pattern>
+  <line-style/>
+  <valid>true</valid>
+  <visible>true</visible>
+  <transparent>false</transparent>
+  <width>1</width>
+  <marked>false</marked>
+  <xfill>false</xfill>
+  <animation>0</animation>
+  <name/>
+  <source>'Ground Strap - Metal' 2/1@1</source>
+ </properties>
  <name/>
 </layer-properties>

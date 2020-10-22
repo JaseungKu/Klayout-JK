@@ -1,0 +1,231 @@
+<?xml version="1.0" encoding="utf-8"?>
+<klayout-macro>
+ <description/>
+ <version/>
+ <category>pymacros</category>
+ <prolog/>
+ <epilog/>
+ <doc/>
+ <autorun>true</autorun>
+ <autorun-early>false</autorun-early>
+ <shortcut/>
+ <show-in-menu>false</show-in-menu>
+ <group-name/>
+ <menu-path/>
+ <interpreter>python</interpreter>
+ <dsl-interpreter-name/>
+ <text># Jaseung Ku, Jul 2019
+# Usage: Draw a path, and select it. Then go to Edit-&gt;Selection-&gt;Convert To Pcel.
+# Select PathToCPW. Once the PCell is created, double-click it to change parameters if needed.
+
+import pya
+import math
+import numpy as np
+
+class PathToCPWGroundStrap(pya.PCellDeclarationHelper):
+  """
+  The PCell declaration for PathToCPW
+  """
+
+  def __init__(self):
+
+    # Important: initialize the super class
+    super(PathToCPWGroundStrap, self).__init__()
+
+    # declare the parameters
+    #self.param("l", self.TypeLayer, "Layer", default = pya.LayerInfo(1, 0))
+    self.param("p", self.TypeLayer, "OUTLINE Layer", default = pya.LayerInfo(0, 2))
+    self.param("k", self.TypeLayer, "KEEPOUT Layer", default = pya.LayerInfo(0, 1))
+    self.param("c", self.TypeLayer, "IMAGE Layer", default = pya.LayerInfo(1, 0))
+    self.param("s", self.TypeShape, "", default = pya.DPath.new())   # Use "D-type" shapes
+    self.param("name", self.TypeString,"CPW name", default='PathToCPW')
+    
+    self.param("si", self.TypeLayer, "SiO2 Layer", default = pya.LayerInfo(2, 0))
+    self.param("b", self.TypeLayer, "Bridge Layer", default = pya.LayerInfo(2, 1))
+          
+    # parameters in um 
+    self.param("cr", self.TypeDouble, "center conductor radius", default = 200)
+    self.param("cw", self.TypeDouble, "c.c width", default = 10)
+    self.param("gw", self.TypeDouble, "gap width", default = 6)
+    self.param("kw", self.TypeDouble, "keepout width", default = 5)
+    self.param("n", self.TypeInt, "Number of points per 360 degree", default = 180)     
+    
+    self.param("sio2_h", self.TypeDouble, "SiO2 height", default = 34)
+    self.param("sio2_w", self.TypeDouble, "SiO2 width", default = 8)
+    self.param("bridge_h", self.TypeDouble, "Bridge height", default = 54)
+    self.param("bridge_w", self.TypeDouble, "Bridge width", default = 8)
+    self.param("bridge_beam_h", self.TypeDouble, "Bridge beam height", default = 38)    
+    self.param("bridge_beam_w", self.TypeDouble, "Bridge beam width", default = 4)    
+    
+    self.param("separation", self.TypeDouble, "ground strap separation", default = 100)    
+    
+  def display_text_impl(self):
+    # Provide a descriptive text for the cell
+    #return "CPWfromPath(CC width=" + str(self.cw) + ",gap width=" + ('%.3f' % self.gw) + ")"
+    return self.name
+    
+  def coerce_parameters_impl(self):
+  
+    # We employ coerce_parameters_impl to decide whether the handle or the 
+    # numeric parameter has changed (by comparing against the effective 
+    # radius ru) and set ru to the effective radius. We also update the 
+    # numerical value or the shape, depending on which one has not changed.
+    pass
+ 
+  def can_create_from_shape_impl(self):
+    # Implement the "Create PCell from shape" protocol: we can use any shape which 
+    # has a finite bounding box
+    #return self.shape.is_box() or self.shape.is_polygon() or self.shape.is_path()
+    return self.shape.is_path()
+  
+  def parameters_from_shape_impl(self):
+    # Implement the "Create PCell from shape" protocol: we set r and l from the shape's 
+    # bounding box width and layer
+    # self.tmp = self.shape.bbox().width() * self.layout.dbu / 2
+    # self.l = self.layout.get_info(self.layer)
+    self.s = self.shape.dpath # read selected path obj. dpath in um unit
+                      
+  def transformation_from_shape_impl(self):
+    # Implement the "Create PCell from shape" protocol: we use the center of the shape's
+    # bounding box to determine the transformation
+    return pya.Trans()
+       
+  def produce_impl(self):
+       
+    # create three paths based on parameter of selected path
+    cc_dpath = self.s.dup() 
+    gap_dpath = self.s.dup()
+    keepout_dpath = self.s.dup()
+    
+    # set width of each path
+    cc_dpath.width = self.cw 
+    gap_dpath.width = cc_dpath.width + self.gw * 2.0 
+    keepout_dpath.width = gap_dpath.width + self.kw * 2.0  
+    
+    # round path
+    cc_dpath_rounded = cc_dpath.round_corners(self.cr, self.n, self.layout.dbu/2.0)
+    gap_dpath_rounded = gap_dpath.round_corners(self.cr, self.n, self.layout.dbu/2.0)
+    keepout_dpath_rounded = keepout_dpath.round_corners(self.cr, self.n, self.layout.dbu/2.0)
+    
+    # turn path to region to do boolean operation
+    cc_region = pya.Region.new(pya.Path.new(cc_dpath_rounded.to_itype(self.layout.dbu)))  # to_itype method to translate the floating-point coordinate path in micron units to an integer-coordinate path in database units.
+    gap_region = pya.Region.new(pya.Path.new(gap_dpath_rounded.to_itype(self.layout.dbu)))
+    keepout_region = pya.Region.new(pya.Path.new(keepout_dpath_rounded.to_itype(self.layout.dbu)))
+ 
+    # create shape
+    #self.cell.shapes(self.p_layer).insert(pya.Path.new(cc_dpath.to_itype(self.layout.dbu)))
+    self.cell.shapes(self.c_layer).insert(gap_region - cc_region)
+    self.cell.shapes(self.k_layer).insert(keepout_region)
+  
+    # create ground strap
+    centerpoint_and_angle = self.get_centerpoint_and_angle_of_ground_strap(cc_dpath_rounded)
+    
+    siO2_Dpoints = [ pya.DPoint.new(0,0), pya.DPoint.new(self.sio2_w,0),pya.DPoint.new(self.sio2_w,self.sio2_h), pya.DPoint.new(0,self.sio2_h)]
+    siO2 = pya.DPolygon.new(siO2_Dpoints)
+    siO2.move(-self.sio2_w/2.0, -self.sio2_h/2.0) # patch centered w.r.t origin
+    
+    bridge_Dpoints = self.get_bridge_Dpoints()
+    bridge = pya.DPolygon.new(bridge_Dpoints) 
+    bridge.move(-self.bridge_w/2.0, -self.bridge_h/2.0) # bridge centered w.r.t origin
+        
+    for p in centerpoint_and_angle:
+        center, angle = p[0], p[1]
+            
+        t = pya.DCplxTrans.new(1, angle, False, center.x, center.y) # transformation: rotation first, and then displacement
+
+        siO2_trans = (t*siO2).to_itype(self.layout.dbu)     
+        bridge_trans =  (t * bridge ).to_itype(self.layout.dbu)
+                
+        self.cell.shapes(self.si_layer).insert(siO2_trans)
+        self.cell.shapes(self.b_layer).insert(bridge_trans)
+
+  def get_centerpoint_and_angle_of_ground_strap(self, path):
+    """ Find the center points adn angles of each ground strap 
+        Args: 
+            path: rounded path 
+        Return:
+            center_points_angles: list of tuples of point and angle
+    """
+    num_ground_strap = path.length() // self.separation
+        
+    #center_points_angle = [find_centerpoint_and_angle_from_ground_strap_distance(self.separation*i, path) for i in range(int(num_ground_strap))]
+    center_points_angles = []
+    for i in range(int(num_ground_strap)):
+      center_points_angles.append(self.find_centerpoint_and_angle_from_ground_strap_distance(self.separation*(i+1), path))
+      
+    return center_points_angles
+
+  def find_centerpoint_and_angle_from_ground_strap_distance(self, distance, path):
+        """ Find centerpoint and angle of a ground strap from distance w.r.t. the starting point of path
+            Args:
+                distance: distance of a ground strap center from the starting point of path
+                path: rounded path
+            Return:
+                tuple of center point and angle in degree
+        """
+
+        path_points = [x for x in path.each_point()]
+        distance_along_path = []
+        
+        index = self.find_index_of_path_points(distance, path) 
+        
+        delta = path_points[index+1]-path_points[index]
+        center_point  = path_points[index] + delta / delta.length() * (distance-self.get_path_length_upto_index(index, path))
+        angle = np.rad2deg(np.angle(delta.x + delta.y*1j)) # degree
+        
+        return (center_point, angle)
+    
+  def find_index_of_path_points(self, distance, path):
+        """ Find index i such that center of ground strap is between a_i and a_(i+1).
+            Ground strap is 'distance' away along the path from the beginning of 'path'
+            Args:
+                distance: distance of a ground strap center from the starting point of path
+                path: rounded path
+            Return:
+                  index i
+        """
+        for index, _ in enumerate(path.each_point()):
+            if self.get_path_length_upto_index(index, path) &gt;= distance:
+                return index-1        
+            
+  def get_path_length_upto_index(self, index, path):
+        """ calculate path length up to ith point of path.
+          Args:
+              index : int
+              path: rounded path
+          Return:
+              total_length : total path length up to ith point of path
+        """
+        path_points = [ p for p in path.each_point()]
+        total_length = 0
+        for i in range(index):
+            total_length += (path_points[i+1] - path_points[i]).length()        
+            
+        return  total_length
+    
+  def get_bridge_Dpoints(self):
+        """ Get array of points for bridge polygon, centered w.r.t origin"""
+        
+        a = (self.bridge_w - self.bridge_beam_w) / 2.0
+        b = (self.bridge_h - self.bridge_beam_h)/2.0
+        
+        deltas = [pya.DPoint.new(0,b)
+                  ,pya.DPoint.new(a,0)
+                  ,pya.DPoint.new(0,self.bridge_beam_h)
+                  ,pya.DPoint.new(-a,0)
+                  ,pya.DPoint.new(0,b)
+                  ,pya.DPoint.new(self.bridge_w,0)
+                  ,pya.DPoint.new(0,-b)
+                  ,pya.DPoint.new(-a,0)
+                  ,pya.DPoint.new(0,-self.bridge_beam_h)
+                  ,pya.DPoint.new(a,0)
+                  ,pya.DPoint.new(0,-b)]
+
+        points = [pya.DPoint.new(0,0)]
+        point = pya.DPoint.new(0,0)
+        for delta in deltas:
+            point += delta
+            points.append(point)
+        
+        return points</text>
+</klayout-macro>

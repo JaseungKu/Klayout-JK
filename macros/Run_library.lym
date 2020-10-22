@@ -34,6 +34,7 @@ class MyLib(pya.Library):
     self.layout().register_pcell("PathToCPW", PathToCPW())
     self.layout().register_pcell("MakeMeanderCPW", MakeMeanderCPW())
     self.layout().register_pcell("MakeTromboneCPW", MakeTromboneCPW())
+    self.layout().register_pcell("PathToCPWGroundStrap", PathToCPWGroundStrap())
 
     # That would be the place to put in more PCells ...
     
