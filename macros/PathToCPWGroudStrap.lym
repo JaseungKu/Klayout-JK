@@ -56,6 +56,8 @@ class PathToCPWGroundStrap(pya.PCellDeclarationHelper):
     self.param("bridge_w", self.TypeDouble, "Bridge width", default = 8)
     self.param("bridge_beam_h", self.TypeDouble, "Bridge beam height", default = 38)    
     self.param("bridge_beam_w", self.TypeDouble, "Bridge beam width", default = 4)    
+    self.param("bridge_keepout_h", self.TypeDouble, "Bridge keepout height", default = 62)    
+    self.param("bridge_keepout_w", self.TypeDouble, "Bridge keepout width", default = 16)    
     
     self.param("separation", self.TypeDouble, "ground strap separation", default = 100)    
     
@@ -127,17 +129,23 @@ class PathToCPWGroundStrap(pya.PCellDeclarationHelper):
     bridge_Dpoints = self.get_bridge_Dpoints()
     bridge = pya.DPolygon.new(bridge_Dpoints) 
     bridge.move(-self.bridge_w/2.0, -self.bridge_h/2.0) # bridge centered w.r.t origin
-        
+     
+    bridge_keepout_Dpoints = [ pya.DPoint.new(0,0), pya.DPoint.new(self.bridge_keepout_w,0),pya.DPoint.new(self.bridge_keepout_w,self.bridge_keepout_h), pya.DPoint.new(0,self.bridge_keepout_h)]
+    bridge_keepout = pya.DPolygon.new(bridge_keepout_Dpoints)
+    bridge_keepout.move(-self.bridge_keepout_w/2.0, -self.bridge_keepout_h/2.0) # patch centered w.r.t origin
+       
     for p in centerpoint_and_angle:
         center, angle = p[0], p[1]
             
         t = pya.DCplxTrans.new(1, angle, False, center.x, center.y) # transformation: rotation first, and then displacement
 
         siO2_trans = (t*siO2).to_itype(self.layout.dbu)     
-        bridge_trans =  (t * bridge ).to_itype(self.layout.dbu)
+        bridge_trans =  (t * bridge).to_itype(self.layout.dbu)
+        bridge_keepout_trans = (t * bridge_keepout).to_itype(self.layout.dbu)
                 
         self.cell.shapes(self.si_layer).insert(siO2_trans)
         self.cell.shapes(self.b_layer).insert(bridge_trans)
+        self.cell.shapes(self.k_layer).insert(bridge_keepout_trans)
 
   def get_centerpoint_and_angle_of_ground_strap(self, path):
     """ Find the center points adn angles of each ground strap 
@@ -146,63 +154,40 @@ class PathToCPWGroundStrap(pya.PCellDeclarationHelper):
         Return:
             center_points_angles: list of tuples of point and angle
     """
-    num_ground_strap = path.length() // self.separation
-        
-    #center_points_angle = [find_centerpoint_and_angle_from_ground_strap_distance(self.separation*i, path) for i in range(int(num_ground_strap))]
+    num_ground_strap = path.length() // self.separation      
+    path_points = [x for x in path.each_point()]
+    
     center_points_angles = []
+    
+    gen = self.generator_index_and_path_length(path_points) # generator
+    index, path_length = next(gen)
+    
     for i in range(int(num_ground_strap)):
-      center_points_angles.append(self.find_centerpoint_and_angle_from_ground_strap_distance(self.separation*(i+1), path))
+      ground_strap_distance = self.separation*(i+1)  # w.r.t beginning of path
+          
+      while True:
+        if  ground_strap_distance &lt;= path_length:
+          delta = path_points[index]-path_points[index-1]
+          center_point  = path_points[index] - delta / delta.length() * (path_length - ground_strap_distance)
+          angle = np.rad2deg(np.angle(delta.x + delta.y*1j)) # degree
+          next_center_angle = (center_point, angle)
+          center_points_angles.append(next_center_angle)
+          break
+        else:
+          index, path_length = next(gen) # step up until if-statement is true.
+    
+    if (path.length() - ground_strap_distance) &lt; self.separation/2.0:
+      del center_points_angles[-1]
       
     return center_points_angles
-
-  def find_centerpoint_and_angle_from_ground_strap_distance(self, distance, path):
-        """ Find centerpoint and angle of a ground strap from distance w.r.t. the starting point of path
-            Args:
-                distance: distance of a ground strap center from the starting point of path
-                path: rounded path
-            Return:
-                tuple of center point and angle in degree
-        """
-
-        path_points = [x for x in path.each_point()]
-        distance_along_path = []
-        
-        index = self.find_index_of_path_points(distance, path) 
-        
-        delta = path_points[index+1]-path_points[index]
-        center_point  = path_points[index] + delta / delta.length() * (distance-self.get_path_length_upto_index(index, path))
-        angle = np.rad2deg(np.angle(delta.x + delta.y*1j)) # degree
-        
-        return (center_point, angle)
     
-  def find_index_of_path_points(self, distance, path):
-        """ Find index i such that center of ground strap is between a_i and a_(i+1).
-            Ground strap is 'distance' away along the path from the beginning of 'path'
-            Args:
-                distance: distance of a ground strap center from the starting point of path
-                path: rounded path
-            Return:
-                  index i
-        """
-        for index, _ in enumerate(path.each_point()):
-            if self.get_path_length_upto_index(index, path) &gt;= distance:
-                return index-1        
-            
-  def get_path_length_upto_index(self, index, path):
-        """ calculate path length up to ith point of path.
-          Args:
-              index : int
-              path: rounded path
-          Return:
-              total_length : total path length up to ith point of path
-        """
-        path_points = [ p for p in path.each_point()]
-        total_length = 0
-        for i in range(index):
-            total_length += (path_points[i+1] - path_points[i]).length()        
-            
-        return  total_length
-    
+  def generator_index_and_path_length(self, path_points):
+      total_length = 0
+      for i in range(1,len(path_points)):
+        total_length += (path_points[i] - path_points[i-1]).length()        
+        yield (i, total_length)
+      return   
+      
   def get_bridge_Dpoints(self):
         """ Get array of points for bridge polygon, centered w.r.t origin"""
         
