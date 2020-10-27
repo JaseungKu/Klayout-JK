@@ -27,6 +27,12 @@ Fourth, click on "PCell" tab to enter parameters.
 4. MakeTromboneCPW
 This macro creates a PCell for a trombone-shaped CPW alone. The cell origin is automatically centered. The instructio is the same as MakeMeanderCPW.
 
+5. PathToCPWGroundStrap 
+This macro converts a path to a CPW PCell with ground strap for flux or charge line. To use it,  
+First, draw a path, and select it.     
+Second, go to Edit -> Selection -> Convert To PCell.  
+Third, select "PathToCPWGroundStrap".
+
 ### How to use macros
 1. CreateFluxTrap  
 Flux trap holes are created in the selected cell instance.     
