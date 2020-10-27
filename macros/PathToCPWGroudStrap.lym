@@ -38,7 +38,7 @@ class PathToCPWGroundStrap(pya.PCellDeclarationHelper):
     self.param("k", self.TypeLayer, "KEEPOUT Layer", default = pya.LayerInfo(0, 1))
     self.param("c", self.TypeLayer, "IMAGE Layer", default = pya.LayerInfo(1, 0))
     self.param("s", self.TypeShape, "", default = pya.DPath.new())   # Use "D-type" shapes
-    self.param("name", self.TypeString,"CPW name", default='PathToCPW')
+    self.param("name", self.TypeString,"CPW name", default='PathToCPWGroundStrap')
     
     self.param("si", self.TypeLayer, "SiO2 Layer", default = pya.LayerInfo(2, 0))
     self.param("b", self.TypeLayer, "Bridge Layer", default = pya.LayerInfo(2, 1))
