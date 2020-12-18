@@ -1,4 +1,4 @@
-## Useful python macros in Klayout for drawing superconducting circuits
+## Useful python macros in Klayout for superconducting qubit circuits
 
 Here I keep python codes and macros for Klayout that I used in designing a photomask layout. The general design rule in creating a mask using Klayout is decribed in *chip_design_run.odt*. Below, I explain how to use macros.
 
