@@ -1,0 +1,100 @@
+<?xml version="1.0" encoding="utf-8"?>
+<klayout-macro>
+ <description/>
+ <version/>
+ <category>pymacros</category>
+ <prolog/>
+ <epilog/>
+ <doc/>
+ <autorun>false</autorun>
+ <autorun-early>false</autorun-early>
+ <shortcut/>
+ <show-in-menu>false</show-in-menu>
+ <group-name/>
+ <menu-path/>
+ <interpreter>python</interpreter>
+ <dsl-interpreter-name/>
+ <text># Jaseung Ku, Jul 2019
+# Usage: Draw a path, and select it. Then go to Edit-&gt;Selection-&gt;Convert To Pcel.
+# Select CreateCircularPattern. Once the PCell is created, double-click it to change parameters if needed.
+
+import pya
+import math
+
+class CreateCircularPattern(pya.PCellDeclarationHelper):
+  """
+  The PCell declaration for CreateCircularPattern
+  """
+
+  def __init__(self):
+
+    # Important: initialize the super class
+    super(CreateCircularPattern, self).__init__()
+
+    # declare the parameters
+    #self.param("l", self.TypeLayer, "Layer", default = pya.LayerInfo(1, 0))
+    self.param("c", self.TypeLayer, "IMAGE Layer", default = pya.LayerInfo(1, 0))
+    self.param("s", self.TypeShape, "", default = pya.DPolygon.new())   # Use "D-type" shape
+    self.param("name", self.TypeString,"Name", default='CreateCircularPattern')
+    
+    # parameters in um 
+    self.param("radius", self.TypeDouble, "Radius", default = 300)
+    self.param("num_pattern", self.TypeInt, "Number of patterns", default = 12)     
+    
+  def display_text_impl(self):
+    # Provide a descriptive text for the cell
+    #return "CPWfromPath(CC width=" + str(self.cw) + ",gap width=" + ('%.3f' % self.gw) + ")"
+    return self.name
+    
+  def coerce_parameters_impl(self):
+  
+    # We employ coerce_parameters_impl to decide whether the handle or the 
+    # numeric parameter has changed (by comparing against the effective 
+    # radius ru) and set ru to the effective radius. We also update the 
+    # numerical value or the shape, depending on which one has not changed.
+    pass
+ 
+  def can_create_from_shape_impl(self):
+    # Implement the "Create PCell from shape" protocol: we can use any shape which 
+    # has a finite bounding box
+    #return self.shape.is_box() or self.shape.is_polygon() or self.shape.is_path()
+    return self.shape.is_polygon() or self.shape.is_box() or self.shape.is_path()
+  
+  def parameters_from_shape_impl(self):
+    # Implement the "Create PCell from shape" protocol: we set r and l from the shape's 
+    # bounding box width and layer
+    # self.tmp = self.shape.bbox().width() * self.layout.dbu / 2
+    # self.l = self.layout.get_info(self.layer)
+    self.s = self.shape.dpolygon # read selected dpolygon in um unit 
+                      
+  def transformation_from_shape_impl(self):
+    # Implement the "Create PCell from shape" protocol: we use the center of the shape's
+    # bounding box to determine the transformation
+    return pya.Trans()
+       
+  def produce_impl(self):
+     
+    for n in range(self.num_pattern):
+      
+      selected_shape_copy = self.s.dup() #  make a copy of selected shape
+           
+      selected_shape_copy = self.create_next_shape(selected_shape_copy, n)
+      
+      self.cell.shapes(self.c_layer).insert(selected_shape_copy)
+  
+  def create_next_shape(self, shape, n):
+  
+      rotation_angle =  360 / self.num_pattern * n  # degree
+      bbox_center_pnt = shape.bbox().center()
+      pivot_pnt = bbox_center_pnt + pya.DPoint.new(0, self.radius)
+            
+      trans_displacement = pya.DCplxTrans.new(pivot_pnt.x, pivot_pnt.y)  # displacement transformation to make origin the rotation axis.
+      trans_rotation = pya.DCplxTrans.new(1, rotation_angle, False, 0, 0) # rotation around the origin
+      
+      shape_out = trans_displacement*trans_rotation*(trans_displacement.inverted()) * shape 
+ 
+      
+      return shape_out
+      
+    </text>
+</klayout-macro>
