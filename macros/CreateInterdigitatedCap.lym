@@ -1,0 +1,161 @@
+<?xml version="1.0" encoding="utf-8"?>
+<klayout-macro>
+ <description/>
+ <version/>
+ <category>pymacros</category>
+ <prolog/>
+ <epilog/>
+ <doc/>
+ <autorun>false</autorun>
+ <autorun-early>false</autorun-early>
+ <shortcut/>
+ <show-in-menu>false</show-in-menu>
+ <group-name/>
+ <menu-path/>
+ <interpreter>python</interpreter>
+ <dsl-interpreter-name/>
+ <text>import pya
+import math
+
+"""
+Usage: Click "Instance" icon. Choose "Jaseung_library" and then "cell".
+"""
+
+class CreateInterdigitatedCap(pya.PCellDeclarationHelper):
+  """
+  The PCell declaration for a CPW
+  """
+
+  def __init__(self):
+
+    # Important: initialize the super class
+    super(CreateInterdigitatedCap, self).__init__()
+
+    # declare the parameters
+#    self.param("p", self.TypeLayer, "OUTLINE Layer", default = pya.LayerInfo(0, 2))
+#    self.param("k", self.TypeLayer, "KEEPOUT Layer", default = pya.LayerInfo(0, 1))
+    self.param("c", self.TypeLayer, "IMAGE Layer", default = pya.LayerInfo(1, 0))
+#    self.param("i", self.TypeLayer, "IMAGE BBOX Layer", default = pya.LayerInfo(0, 3))
+#    self.param("s", self.TypeShape, "", default = pya.Path.new())
+   
+    self.param("name", self.TypeString, "Name", default='InterdigitatedCap')
+     
+    # parameter in um 
+    self.param("width", self.TypeDouble, "total width", default = 100)
+    self.param("finger_length", self.TypeDouble, "finger length", default = 50)
+    self.param("finger_width", self.TypeDouble, "finger width", default = 4)
+    self.param("gap", self.TypeDouble, "gap", default = 2)
+    self.param("n", self.TypeInt, "Number of fingers", default = 20)     
+       
+    # this hidden parameter is used to determine whether the radius has changed
+    # or the "s" handle has been moved
+    #self.param("ru", self.TypeDouble, "Radius", default = 0.0, hidden = True)
+    #self.param("rd", self.TypeDouble, "Double radius", readonly = True)
+
+  def display_text_impl(self):
+    # Provide a descriptive text for the cell
+  #  return "CreateInterdigitatedCap(length=" + str(self.tl) + ",gap width=" + ('%.3f' % self.gw) + ")"
+    return self.name
+    
+  def coerce_parameters_impl(self):
+  
+    # We employ coerce_parameters_impl to decide whether the handle or the 
+    # numeric parameter has changed (by comparing against the effective 
+    # radius ru) and set ru to the effective radius. We also update the 
+    # numerical value or the shape, depending on which one has not changed.
+   
+   # rs = None
+   # if isinstance(self.s, pya.DPoint): 
+   #   # compute distance in micron
+   #   rs = self.s.distance(pya.DPoint(0, 0))
+   # if rs != None and abs(self.r-self.ru) &lt; 1e-6:
+   #   self.ru = rs
+   #   self.r = rs 
+   # else:
+   #   self.ru = self.r
+   #   self.s = pya.DPoint(-self.r, 0)
+   # 
+   # self.rd = 2*self.r
+    
+    if self.n &lt; 3:
+      self.n = 3
+      
+          
+  def can_create_from_shape_impl(self):
+    # Implement the "Create PCell from shape" protocol: we can use any shape which 
+    # has a finite bounding box
+    return False
+  
+  #def parameters_from_shape_impl(self):
+    # Implement the "Create PCell from shape" protocol: we set r and l from the shape's 
+    # bounding box width and layer
+    # self.tmp = self.shape.bbox().width() * self.layout.dbu / 2
+    #self.l = self.layout.get_info(self.layer)
+    #self.s = self.shape.path # read selected path obj.
+                      
+  #def transformation_from_shape_impl(self):
+    # Implement the "Create PCell from shape" protocol: we use the center of the shape's
+    # bounding box to determine the transformation
+    #return pya.Trans(self.shape.bbox().center())
+       
+  def produce_impl(self):
+
+    # Here comes my code
+         
+    # create a path
+    gap_dpath = self.create_path()  # in um unit
+    height = self.calculate_height()
+    dbox = pya.DBox.new(0, -height, self.width, 0)  # top-left corner is origin, i.e., (0,0).
+               
+    # turn path and box to region to do boolean operation
+    gap_region = pya.Region.new(pya.Path.new(gap_dpath.to_itype(self.layout.dbu)))  # to_itype method to translate the floating-point coordinate path in micron units to an integer-coordinate path in database units.
+    box_region = pya.Region.new(pya.Box.new(dbox.to_itype(self.layout.dbu)))
+ 
+    # create shape
+    self.cell.shapes(self.c_layer).insert(box_region - gap_region)
+
+  
+  def create_path(self):
+    
+    # create path points
+    path_starting_pnt = pya.DPoint.new((self.width -(self.finger_length + self.gap))/2, 0)
+    
+    pts = [path_starting_pnt]
+    delta_vertical_endpoint = pya.DPoint.new(0, -self.finger_width - self.gap/2)
+    delta_vertical_notendpoint = pya.DPoint.new(0, -self.finger_width - self.gap)
+    delta_horizontal = pya.DPoint.new(self.finger_length + self.gap, 0)
+    
+    num_point_path = 2 * self.n
+    
+    # get deltas except first and last delta
+    deltas = []
+    for i in range(1, num_point_path-1):
+      if i%2==0:
+        deltas.append(delta_vertical_notendpoint)
+      else:
+        deltas.append(delta_horizontal)  
+        delta_horizontal = delta_horizontal * (-1)
+        
+    # insert start and end delta
+    deltas.insert(0, delta_vertical_endpoint)
+    deltas.append(delta_vertical_endpoint)
+    
+    for i in range(num_point_path-1):
+      pts.append(pts[-1] + deltas[i])
+
+    created_path = pya.DPath.new(pts, self.gap) # in um 
+  
+    return created_path
+  
+      
+  def calculate_height(self):
+    """ Calculate heigh of the capacitor, given finger width and number of fingers in um"""
+    
+    height = self.finger_width * self.n + self.gap * (self.n-1)
+    
+    return height 
+        
+
+
+</text>
+</klayout-macro>
