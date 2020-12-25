@@ -58,7 +58,7 @@ class CreateMeanderInductor(pya.PCellDeclarationHelper):
   #  return "CreateMeanderInductor(length=" + str(self.tl) + ",gap width=" + ('%.3f' % self.gw) + ")"
     length = (self.finger_length + 2*self.gap)*(self.n-1) + self.finger_width * self.n
     
-    return f'Length = {length :.3f}' 
+    return f'Length = {length :.3f} um' 
     
   def coerce_parameters_impl(self):
   

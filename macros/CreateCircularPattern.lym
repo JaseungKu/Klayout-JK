@@ -38,7 +38,8 @@ class CreateCircularPattern(pya.PCellDeclarationHelper):
     self.param("name", self.TypeString,"Name", default='CreateCircularPattern')
     
     # parameters in um 
-    self.param("radius", self.TypeDouble, "Radius", default = 300)
+    self.param("rot_axis_x", self.TypeDouble, "Rotation axis, x", default = 0)
+    self.param("rot_axis_y", self.TypeDouble, "Rotation axis, y", default = 0)
     self.param("num_pattern", self.TypeInt, "Number of patterns", default = 12)     
     
   def display_text_impl(self):
@@ -85,10 +86,10 @@ class CreateCircularPattern(pya.PCellDeclarationHelper):
   def create_next_shape(self, shape, n):
   
       rotation_angle =  360 / self.num_pattern * n  # degree
-      bbox_center_pnt = shape.bbox().center()
-      pivot_pnt = bbox_center_pnt + pya.DPoint.new(0, self.radius)
+ #     bbox_center_pnt = shape.bbox().center()
+#      pivot_pnt = bbox_center_pnt + pya.DPoint.new(0, self.radius)
             
-      trans_displacement = pya.DCplxTrans.new(pivot_pnt.x, pivot_pnt.y)  # displacement transformation to make origin the rotation axis.
+      trans_displacement = pya.DCplxTrans.new(self.rot_axis_x, self.rot_axis_y)  # displacement transformation to make origin the rotation axis.
       trans_rotation = pya.DCplxTrans.new(1, rotation_angle, False, 0, 0) # rotation around the origin
       
       shape_out = trans_displacement*trans_rotation*(trans_displacement.inverted()) * shape 
