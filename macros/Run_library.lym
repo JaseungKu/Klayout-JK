@@ -37,6 +37,7 @@ class MyLib(pya.Library):
     self.layout().register_pcell("PathToCPWGroundStrap", PathToCPWGroundStrap())
     self.layout().register_pcell("CreateCircularPattern", CreateCircularPattern())
     self.layout().register_pcell("CreateInterdigitatedCap", CreateInterdigitatedCap())
+    self.layout().register_pcell("CreateMeanderInductor", CreateMeanderInductor())
 
     # That would be the place to put in more PCells ...
     

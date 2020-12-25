@@ -21,7 +21,7 @@ import math
 Usage: Click "Instance" icon. Choose "Jaseung_library" and then "cell".
 """
 
-class CreateInterdigitatedCap(pya.PCellDeclarationHelper):
+class CreateMeanderInductor(pya.PCellDeclarationHelper):
   """
   The PCell declaration for a CPW
   """
@@ -29,7 +29,7 @@ class CreateInterdigitatedCap(pya.PCellDeclarationHelper):
   def __init__(self):
 
     # Important: initialize the super class
-    super(CreateInterdigitatedCap, self).__init__()
+    super(CreateMeanderInductor, self).__init__()
 
     # declare the parameters
 #    self.param("p", self.TypeLayer, "OUTLINE Layer", default = pya.LayerInfo(0, 2))
@@ -38,13 +38,14 @@ class CreateInterdigitatedCap(pya.PCellDeclarationHelper):
 #    self.param("i", self.TypeLayer, "IMAGE BBOX Layer", default = pya.LayerInfo(0, 3))
 #    self.param("s", self.TypeShape, "", default = pya.Path.new())
    
-    self.param("name", self.TypeString, "Name", default='InterdigitatedCap')
+    self.param("name", self.TypeString, "Name", default='Meander Indductor')
      
     # parameter in um 
-    self.param("width", self.TypeDouble, "total width", default = 100)
-    self.param("finger_length", self.TypeDouble, "finger length", default = 50)
-    self.param("finger_width", self.TypeDouble, "finger width", default = 4)
-    self.param("gap", self.TypeDouble, "gap", default = 2)
+    self.param("finger_length", self.TypeDouble, "Finger length", default = 50)
+    self.param("finger_width", self.TypeDouble, "Finger width", default = 4)
+    self.param("gap", self.TypeDouble, "Gap", default = 2)
+    self.param("end_offset", self.TypeDouble, "Endpoint offset", default = 0)
+    self.param("end_extension", self.TypeDouble, "Endpoint extension", default = 0)
     self.param("n", self.TypeInt, "Number of fingers", default = 20)     
        
     # this hidden parameter is used to determine whether the radius has changed
@@ -54,8 +55,10 @@ class CreateInterdigitatedCap(pya.PCellDeclarationHelper):
 
   def display_text_impl(self):
     # Provide a descriptive text for the cell
-  #  return "CreateInterdigitatedCap(length=" + str(self.tl) + ",gap width=" + ('%.3f' % self.gw) + ")"
-    return self.name
+  #  return "CreateMeanderInductor(length=" + str(self.tl) + ",gap width=" + ('%.3f' % self.gw) + ")"
+    length = (self.finger_length + 2*self.gap)*(self.n-1) + self.finger_width * self.n
+    
+    return f'Length = {length :.3f}' 
     
   def coerce_parameters_impl(self):
   
@@ -104,24 +107,18 @@ class CreateInterdigitatedCap(pya.PCellDeclarationHelper):
          
     # create a path
     gap_dpath = self.create_path()  # in um unit
-    height = self.calculate_height()
-    dbox = pya.DBox.new(0, -height, self.width, 0)  # top-left corner is origin, i.e., (0,0).
                
-    # turn path and box to region to do boolean operation
-    gap_region = pya.Region.new(pya.Path.new(gap_dpath.to_itype(self.layout.dbu)))  # to_itype method to translate the floating-point coordinate path in micron units to an integer-coordinate path in database units.
-    box_region = pya.Region.new(pya.Box.new(dbox.to_itype(self.layout.dbu)))
- 
     # create shape
-    self.cell.shapes(self.c_layer).insert(box_region - gap_region)
+    self.cell.shapes(self.c_layer).insert(gap_dpath.to_itype(self.layout.dbu))
 
   
   def create_path(self):
     
     # create path points
-    path_starting_pnt = pya.DPoint.new((self.width -(self.finger_length + self.gap))/2, 0)
+    path_starting_pnt = pya.DPoint.new(0,0)
     
     pts = [path_starting_pnt]
-    delta_vertical_endpoint = pya.DPoint.new(0, -self.finger_width - self.gap/2)
+    delta_vertical_endpoint = pya.DPoint.new(0, -self.finger_width - self.gap/2 - self.end_extension)
     delta_vertical_notendpoint = pya.DPoint.new(0, -self.finger_width - self.gap)
     delta_horizontal = pya.DPoint.new(self.finger_length + self.gap, 0)
     
@@ -140,21 +137,25 @@ class CreateInterdigitatedCap(pya.PCellDeclarationHelper):
     deltas.insert(0, delta_vertical_endpoint)
     deltas.append(delta_vertical_endpoint)
     
+    # create path points
     for i in range(num_point_path-1):
       pts.append(pts[-1] + deltas[i])
-
+    
+    # Give offset of both ends
+    pts[0] = pts[0] + pya.DPoint.new(self.end_offset, 0)
+    pts[1] = pts[1] + pya.DPoint.new(self.end_offset, 0)
+    
+    if self.n % 2 ==0:
+      pts[-1] = pts[-1] + pya.DPoint.new(-self.end_offset, 0)
+      pts[-2] = pts[-2] + pya.DPoint.new(-self.end_offset, 0)
+    else:
+      pts[-1] = pts[-1] + pya.DPoint.new(self.end_offset, 0)
+      pts[-2] = pts[-2] + pya.DPoint.new(self.end_offset, 0)
+      
     created_path = pya.DPath.new(pts, self.gap) # in um 
   
     return created_path
-  
-      
-  def calculate_height(self):
-    """ Calculate heigh of the capacitor, given finger width and number of fingers in um"""
-    
-    height = self.finger_width * self.n + self.gap * (self.n-1)
-    
-    return height 
-        
+         
 
 
 </text>
