@@ -6,7 +6,7 @@
  <prolog/>
  <epilog/>
  <doc/>
- <autorun>false</autorun>
+ <autorun>true</autorun>
  <autorun-early>false</autorun-early>
  <shortcut/>
  <show-in-menu>false</show-in-menu>
@@ -17,7 +17,6 @@
  <text># Jaseung Ku, Dec 2020
 
 import pya
-import math
 
 class MakeRingCap(pya.PCellDeclarationHelper):
   """
@@ -105,6 +104,9 @@ class MakeRingCap(pya.PCellDeclarationHelper):
       next_region = self.create_nth_region(base_region_to_duplicate, n)
       self.cell.shapes(self.c_layer).insert(next_region)
 
+    # center the origin
+    self.center_cell_origin()
+    
   def create_nth_region(self, region, n):
     
       rotation_angle =  360 / self.num_patterns * n + self.offset_rotation # degree
@@ -127,7 +129,7 @@ class MakeRingCap(pya.PCellDeclarationHelper):
     point_bl = pya.Point.new(bbox.left, bbox.bottom)
     point_tl = pya.Point.new(bbox.left, bbox.top)
 
-    rotation_angle =  360 / self.num_patterns + self.offset_rotation # degree
+    rotation_angle =  360 / self.num_patterns
     pivot_dpoint = pya.DPoint.new(self.width/2, 0) + pya.DPoint.new(0, self.radius) 
     trans_displacement = pya.ICplxTrans.new(pivot_dpoint.to_itype(self.layout.dbu))  # displacement transformation to make origin the rotation axis.
     trans_rotation = pya.ICplxTrans.new(1, rotation_angle, False, 0, 0) # rotation around the origin
@@ -193,5 +195,26 @@ class MakeRingCap(pya.PCellDeclarationHelper):
     
     height = self.finger_width * self.num_fingers + self.gap * (self.num_fingers-1)
     
-    return height </text>
+    return height 
+
+  def center_cell_origin(self):
+    """
+    This script is to adjust origin to the center of bounding box for selected cell instances.
+    """  
+    layerlist = self.layout.layer_indexes()
+    
+    bbox = self.cell.bbox() 
+    center_pnt = bbox.center()
+    
+    # This is equivalent to "Edit-&gt;Cell-&gt;Adjust Origin with 1) "Adjust instances in parents" undchecked
+    # 2) Put origin relative to cell's bounding box AT 'center'.
+    for layer in layerlist:
+        shapes = self.cell.shapes(layer)
+        shapes.transform(pya.Trans.new(-center_pnt.x, -center_pnt.y))
+        
+    # shift the cell instances in parent instances (equivalent to "Adjust instances in parents" in Edit-&gt;Cell-&gt;Adjust Origin).
+    for parent_inst in self.cell.each_parent_inst():
+      parent_inst.child_inst().transform(pya.Trans.new(center_pnt.x, center_pnt.y))
+
+         </text>
 </klayout-macro>
