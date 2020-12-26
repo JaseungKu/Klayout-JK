@@ -14,22 +14,19 @@
  <menu-path/>
  <interpreter>python</interpreter>
  <dsl-interpreter-name/>
- <text>import pya
-import math
+ <text># Jaseung Ku, Dec 2020
 
-"""
-Usage: Click "Instance" icon. Choose "Jaseung_library" and then "cell".
-"""
+import pya
 
-class CreateInterdigitatedCap(pya.PCellDeclarationHelper):
+class MakeInterdigitatedCap(pya.PCellDeclarationHelper):
   """
-  The PCell declaration for a CPW
+  The PCell declaration for MakeInterdigitatedCap. This is a standalone PCell.
   """
 
   def __init__(self):
 
     # Important: initialize the super class
-    super(CreateInterdigitatedCap, self).__init__()
+    super(MakeInterdigitatedCap, self).__init__()
 
     # declare the parameters
 #    self.param("p", self.TypeLayer, "OUTLINE Layer", default = pya.LayerInfo(0, 2))
@@ -54,7 +51,7 @@ class CreateInterdigitatedCap(pya.PCellDeclarationHelper):
 
   def display_text_impl(self):
     # Provide a descriptive text for the cell
-  #  return "CreateInterdigitatedCap(length=" + str(self.tl) + ",gap width=" + ('%.3f' % self.gw) + ")"
+  #  return "MakeInterdigitatedCap(length=" + str(self.tl) + ",gap width=" + ('%.3f' % self.gw) + ")"
     return self.name
     
   def coerce_parameters_impl(self):
@@ -63,20 +60,7 @@ class CreateInterdigitatedCap(pya.PCellDeclarationHelper):
     # numeric parameter has changed (by comparing against the effective 
     # radius ru) and set ru to the effective radius. We also update the 
     # numerical value or the shape, depending on which one has not changed.
-   
-   # rs = None
-   # if isinstance(self.s, pya.DPoint): 
-   #   # compute distance in micron
-   #   rs = self.s.distance(pya.DPoint(0, 0))
-   # if rs != None and abs(self.r-self.ru) &lt; 1e-6:
-   #   self.ru = rs
-   #   self.r = rs 
-   # else:
-   #   self.ru = self.r
-   #   self.s = pya.DPoint(-self.r, 0)
-   # 
-   # self.rd = 2*self.r
-    
+     
     if self.n &lt; 3:
       self.n = 3
       
@@ -99,8 +83,6 @@ class CreateInterdigitatedCap(pya.PCellDeclarationHelper):
     #return pya.Trans(self.shape.bbox().center())
        
   def produce_impl(self):
-
-    # Here comes my code
          
     # create a path
     gap_dpath = self.create_path()  # in um unit

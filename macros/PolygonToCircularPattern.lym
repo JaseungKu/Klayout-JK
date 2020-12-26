@@ -14,28 +14,26 @@
  <menu-path/>
  <interpreter>python</interpreter>
  <dsl-interpreter-name/>
- <text># Jaseung Ku, Jul 2019
-# Usage: Draw a path, and select it. Then go to Edit-&gt;Selection-&gt;Convert To Pcel.
-# Select CreateCircularPattern. Once the PCell is created, double-click it to change parameters if needed.
+ <text># Jaseung Ku, Dec 2020
 
 import pya
-import math
 
-class CreateCircularPattern(pya.PCellDeclarationHelper):
+class PolygonToCircularPattern(pya.PCellDeclarationHelper):
   """
-  The PCell declaration for CreateCircularPattern
+  The PCell declaration for PolygonToCircularPattern. 
+  Usage: Select a polygon and convert it to PCell.
   """
 
   def __init__(self):
 
     # Important: initialize the super class
-    super(CreateCircularPattern, self).__init__()
+    super(PolygonToCircularPattern, self).__init__()
 
     # declare the parameters
     #self.param("l", self.TypeLayer, "Layer", default = pya.LayerInfo(1, 0))
     self.param("c", self.TypeLayer, "IMAGE Layer", default = pya.LayerInfo(1, 0))
     self.param("s", self.TypeShape, "", default = pya.DPolygon.new())   # Use "D-type" shape
-    self.param("name", self.TypeString,"Name", default='CreateCircularPattern')
+    self.param("name", self.TypeString,"Name", default='PolygonToCircularPattern')
     
     # parameters in um 
     self.param("rot_axis_x", self.TypeDouble, "Rotation axis, x", default = 0)
@@ -75,20 +73,15 @@ class CreateCircularPattern(pya.PCellDeclarationHelper):
        
   def produce_impl(self):
      
-    for n in range(self.num_pattern):
-      
-      selected_shape_copy = self.s.dup() #  make a copy of selected shape
-           
-      selected_shape_copy = self.create_next_shape(selected_shape_copy, n)
-      
+    for n in range(self.num_pattern):   
+      selected_shape_copy = self.s.dup() #  make a copy of selected shape      
+      selected_shape_copy = self.create_next_shape(selected_shape_copy, n)     
       self.cell.shapes(self.c_layer).insert(selected_shape_copy)
   
   def create_next_shape(self, shape, n):
   
       rotation_angle =  360 / self.num_pattern * n  # degree
- #     bbox_center_pnt = shape.bbox().center()
-#      pivot_pnt = bbox_center_pnt + pya.DPoint.new(0, self.radius)
-            
+       
       trans_displacement = pya.DCplxTrans.new(self.rot_axis_x, self.rot_axis_y)  # displacement transformation to make origin the rotation axis.
       trans_rotation = pya.DCplxTrans.new(1, rotation_angle, False, 0, 0) # rotation around the origin
       
