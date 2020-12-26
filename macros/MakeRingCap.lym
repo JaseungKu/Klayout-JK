@@ -199,7 +199,7 @@ class MakeRingCap(pya.PCellDeclarationHelper):
 
   def center_cell_origin(self):
     """
-    This script is to adjust origin to the center of bounding box for selected cell instances.
+    This script is to adjust origin to the center of bounding box for PCell.
     """  
     layerlist = self.layout.layer_indexes()
     
@@ -213,6 +213,7 @@ class MakeRingCap(pya.PCellDeclarationHelper):
         shapes.transform(pya.Trans.new(-center_pnt.x, -center_pnt.y))
         
     # shift the cell instances in parent instances (equivalent to "Adjust instances in parents" in Edit-&gt;Cell-&gt;Adjust Origin).
+    # This makes the cell not shifte in its parent instances after the origin of the cell is adjusted.
     for parent_inst in self.cell.each_parent_inst():
       parent_inst.child_inst().transform(pya.Trans.new(center_pnt.x, center_pnt.y))
 
