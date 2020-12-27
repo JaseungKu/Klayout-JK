@@ -40,6 +40,7 @@ class MyLib(pya.Library):
     self.layout().register_pcell("MakeMeanderInductor", MakeMeanderInductor())
     self.layout().register_pcell("MakeRingCap", MakeRingCap())
     self.layout().register_pcell("MakeRingInductor", MakeRingInductor())
+    self.layout().register_pcell("MakeRingGND", MakeRingGND ())
   
     # That would be the place to put in more PCells ...
     

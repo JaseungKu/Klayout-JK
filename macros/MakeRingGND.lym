@@ -1,0 +1,139 @@
+<?xml version="1.0" encoding="utf-8"?>
+<klayout-macro>
+ <description/>
+ <version/>
+ <category>pymacros</category>
+ <prolog/>
+ <epilog/>
+ <doc/>
+ <autorun>false</autorun>
+ <autorun-early>false</autorun-early>
+ <shortcut/>
+ <show-in-menu>false</show-in-menu>
+ <group-name/>
+ <menu-path/>
+ <interpreter>python</interpreter>
+ <dsl-interpreter-name/>
+ <text># Jaseung Ku, Dec 2020
+
+import pya
+import math
+
+class MakeRingGND(pya.PCellDeclarationHelper):
+  """
+  The PCell declaration for MakeRingGND. This is a standalone PCell.
+  """
+
+  def __init__(self):
+
+    # Important: initialize the super class
+    super(MakeRingGND, self).__init__()
+
+    # declare the parameters
+#    self.param("p", self.TypeLayer, "OUTLINE Layer", default = pya.LayerInfo(0, 2))
+#    self.param("k", self.TypeLayer, "KEEPOUT Layer", default = pya.LayerInfo(0, 1))
+    self.param("c", self.TypeLayer, "IMAGE Layer", default = pya.LayerInfo(1, 0))
+#    self.param("i", self.TypeLayer, "IMAGE BBOX Layer", default = pya.LayerInfo(0, 3))
+#    self.param("s", self.TypeShape, "", default = pya.Path.new())
+    self.param("name", self.TypeString, "Name", default='MakeRingGND')
+ 
+    # parameters in um 
+    self.param("length", self.TypeDouble, "Box Length", default = 3150)    
+    self.param("height", self.TypeDouble, "Box Height", default = 3150)    
+    self.param("radius", self.TypeDouble, "Radius", default = 500)    
+    self.param("n", self.TypeInt, "Number of points", default = 360)    
+        
+    # this hidden parameter is used to determine whether the radius has changed
+    # or the "s" handle has been moved
+    #self.param("ru", self.TypeDouble, "Radius", default = 0.0, hidden = True)
+    #self.param("rd", self.TypeDouble, "Double radius", readonly = True)
+
+  def display_text_impl(self):
+    # Provide a descriptive text for the cell
+  #  return "MakeRingGND(length=" + str(self.tl) + ",gap width=" + ('%.3f' % self.gw) + ")"  
+    return self.name
+    
+  def coerce_parameters_impl(self):
+  
+    # We employ coerce_parameters_impl to decide whether the handle or the 
+    # numeric parameter has changed (by comparing against the effective 
+    # radius ru) and set ru to the effective radius. We also update the 
+    # numerical value or the shape, depending on which one has not changed.
+   
+   # rs = None
+   # if isinstance(self.s, pya.DPoint): 
+   #   # compute distance in micron
+   #   rs = self.s.distance(pya.DPoint(0, 0))
+   # if rs != None and abs(self.r-self.ru) &lt; 1e-6:
+   #   self.ru = rs
+   #   self.r = rs 
+   # else:
+   #   self.ru = self.r
+   #   self.s = pya.DPoint(-self.r, 0)
+   # 
+   # self.rd = 2*self.r
+   pass
+          
+  def can_create_from_shape_impl(self):
+    # Implement the "Create PCell from shape" protocol: we can use any shape which 
+    # has a finite bounding box
+    return False
+  
+  #def parameters_from_shape_impl(self):
+    # Implement the "Create PCell from shape" protocol: we set r and l from the shape's 
+    # bounding box width and layer
+    # self.tmp = self.shape.bbox().width() * self.layout.dbu / 2
+    #self.l = self.layout.get_info(self.layer)
+    #self.s = self.shape.path # read selected path obj.
+                      
+  #def transformation_from_shape_impl(self):
+    # Implement the "Create PCell from shape" protocol: we use the center of the shape's
+    # bounding box to determine the transformation
+    #return pya.Trans(self.shape.bbox().center())
+       
+  def produce_impl(self):
+         
+    # create a path
+    box = pya.DBox.new(-self.length/2, -self.height/2, self.length/2, self.height/2)
+    circle = self.make_circle()
+            
+    region = pya.Region(box.to_itype(self.layout.dbu)) - pya.Region(circle.to_itype(self.layout.dbu))
+
+    self.cell.shapes(self.c_layer).insert(region)
+
+    # center the origin
+    self.center_cell_origin()
+ 
+  def make_circle(self):
+  # compute the circle
+    pts = []
+    da = math.pi * 2 / self.n
+    for i in range(self.n):
+      pts.append(pya.DPoint.new(self.radius * math.cos(i * da), self.radius * math.sin(i * da)))
+    
+    circle = pya.DPolygon.new(pts)
+    
+    return circle
+    
+  def center_cell_origin(self):
+    """
+    This script is to adjust origin to the center of bounding box for PCell.
+    """  
+    layerlist = self.layout.layer_indexes()
+    
+    bbox = self.cell.bbox() 
+    center_pnt = bbox.center()
+    
+    # This is equivalent to "Edit-&gt;Cell-&gt;Adjust Origin with 1) "Adjust instances in parents" undchecked
+    # 2) Put origin relative to cell's bounding box AT 'center'.
+    for layer in layerlist:
+        shapes = self.cell.shapes(layer)
+        shapes.transform(pya.Trans.new(-center_pnt.x, -center_pnt.y))
+        
+    # shift the cell instances in parent instances (equivalent to "Adjust instances in parents" in Edit-&gt;Cell-&gt;Adjust Origin).
+    # This makes the cell not shifte in its parent instances after the origin of the cell is adjusted.
+    for parent_inst in self.cell.each_parent_inst():
+      parent_inst.child_inst().transform(pya.Trans.new(center_pnt.x, center_pnt.y))
+
+</text>
+</klayout-macro>
