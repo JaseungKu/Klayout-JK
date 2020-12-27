@@ -1,0 +1,200 @@
+<?xml version="1.0" encoding="utf-8"?>
+<klayout-macro>
+ <description/>
+ <version/>
+ <category>pymacros</category>
+ <prolog/>
+ <epilog/>
+ <doc/>
+ <autorun>false</autorun>
+ <autorun-early>false</autorun-early>
+ <shortcut/>
+ <show-in-menu>false</show-in-menu>
+ <group-name/>
+ <menu-path/>
+ <interpreter>python</interpreter>
+ <dsl-interpreter-name/>
+ <text># Jaseung Ku, Dec 2020
+
+import pya
+
+class MakeRingInductor(pya.PCellDeclarationHelper):
+  """
+  The PCell declaration for MakeRingInductor. This is a standalone PCell.
+  """
+
+  def __init__(self):
+
+    # Important: initialize the super class
+    super(MakeRingInductor, self).__init__()
+
+    # declare the parameters
+#    self.param("p", self.TypeLayer, "OUTLINE Layer", default = pya.LayerInfo(0, 2))
+#    self.param("k", self.TypeLayer, "KEEPOUT Layer", default = pya.LayerInfo(0, 1))
+    self.param("c", self.TypeLayer, "IMAGE Layer", default = pya.LayerInfo(1, 0))
+#    self.param("i", self.TypeLayer, "IMAGE BBOX Layer", default = pya.LayerInfo(0, 3))
+#    self.param("s", self.TypeShape, "", default = pya.Path.new())
+    self.param("name", self.TypeString, "Name", default='MakeRingInductor')
+ 
+    # parameters in um 
+    self.param("radius", self.TypeDouble, "Radius", default = 500)    
+    self.param("num_patterns", self.TypeInt, "Number of patterns", default = 12)     
+    self.param("offset_rotation", self.TypeDouble, "Offset rotation (deg)", default = 0)     
+        
+    # parameter in um 
+    self.param("finger_length", self.TypeDouble, "Finger length", default = 50)
+    self.param("finger_width", self.TypeDouble, "Finger width", default = 4)
+    self.param("gap", self.TypeDouble, "Gap", default = 2)
+    self.param("end_offset", self.TypeDouble, "Endpoint offset", default = 0)
+    self.param("end_extension", self.TypeDouble, "Endpoint extension", default = 0)
+    self.param("n", self.TypeInt, "Number of fingers", default = 20)     
+       
+    # this hidden parameter is used to determine whether the radius has changed
+    # or the "s" handle has been moved
+    #self.param("ru", self.TypeDouble, "Radius", default = 0.0, hidden = True)
+    #self.param("rd", self.TypeDouble, "Double radius", readonly = True)
+
+  def display_text_impl(self):
+    # Provide a descriptive text for the cell
+  #  return "MakeRingInductor(length=" + str(self.tl) + ",gap width=" + ('%.3f' % self.gw) + ")"
+    length = (self.finger_length + 2*self.gap)*(self.n-1) + self.finger_width * self.n
+    
+    return f'Length = {length :.3f} um' 
+    
+  def coerce_parameters_impl(self):
+  
+    # We employ coerce_parameters_impl to decide whether the handle or the 
+    # numeric parameter has changed (by comparing against the effective 
+    # radius ru) and set ru to the effective radius. We also update the 
+    # numerical value or the shape, depending on which one has not changed.
+   
+   # rs = None
+   # if isinstance(self.s, pya.DPoint): 
+   #   # compute distance in micron
+   #   rs = self.s.distance(pya.DPoint(0, 0))
+   # if rs != None and abs(self.r-self.ru) &lt; 1e-6:
+   #   self.ru = rs
+   #   self.r = rs 
+   # else:
+   #   self.ru = self.r
+   #   self.s = pya.DPoint(-self.r, 0)
+   # 
+   # self.rd = 2*self.r
+    
+    if self.n &lt; 3:
+      self.n = 3
+      
+          
+  def can_create_from_shape_impl(self):
+    # Implement the "Create PCell from shape" protocol: we can use any shape which 
+    # has a finite bounding box
+    return False
+  
+  #def parameters_from_shape_impl(self):
+    # Implement the "Create PCell from shape" protocol: we set r and l from the shape's 
+    # bounding box width and layer
+    # self.tmp = self.shape.bbox().width() * self.layout.dbu / 2
+    #self.l = self.layout.get_info(self.layer)
+    #self.s = self.shape.path # read selected path obj.
+                      
+  #def transformation_from_shape_impl(self):
+    # Implement the "Create PCell from shape" protocol: we use the center of the shape's
+    # bounding box to determine the transformation
+    #return pya.Trans(self.shape.bbox().center())
+       
+  def produce_impl(self):
+
+    # Here comes my code
+         
+    # create a path
+    gap_dpath = self.create_path()  # in um unit
+               
+    # create shape
+#    self.cell.shapes(self.c_layer).insert(gap_dpath.to_itype(self.layout.dbu))
+    base_region_to_duplicate = pya.Region.new(gap_dpath.to_itype(self.layout.dbu))
+    
+    # create circular patterns   
+    for n in range(self.num_patterns):     
+      next_region = self.create_nth_region(base_region_to_duplicate, n)
+      self.cell.shapes(self.c_layer).insert(next_region)
+
+    # center the origin
+    self.center_cell_origin()
+  
+  def create_path(self):
+    
+    # create path points
+    path_starting_pnt = pya.DPoint.new(0,0)
+    
+    pts = [path_starting_pnt]
+    delta_vertical_endpoint = pya.DPoint.new(0, -self.finger_width - self.gap/2 - self.end_extension)
+    delta_vertical_notendpoint = pya.DPoint.new(0, -self.finger_width - self.gap)
+    delta_horizontal = pya.DPoint.new(self.finger_length + self.gap, 0)
+    
+    num_point_path = 2 * self.n
+    
+    # get deltas except first and last delta
+    deltas = []
+    for i in range(1, num_point_path-2):
+      if i%2==0:
+        deltas.append(delta_vertical_notendpoint)
+      else:
+        deltas.append(delta_horizontal)  
+        delta_horizontal = delta_horizontal * (-1)
+        
+    # insert start and end delta
+    deltas.insert(0, delta_vertical_endpoint)
+    deltas.append(delta_vertical_endpoint)
+    
+    # create path points
+    for i in range(num_point_path-1):
+      pts.append(pts[-1] + deltas[i])
+    
+    # Give offset of both ends
+    pts[0] = pts[0] + pya.DPoint.new(self.end_offset, 0)
+    pts[1] = pts[1] + pya.DPoint.new(self.end_offset, 0)
+    
+    if self.n % 2 ==0:
+      pts[-1] = pts[-1] + pya.DPoint.new(-self.end_offset, 0)
+      pts[-2] = pts[-2] + pya.DPoint.new(-self.end_offset, 0)
+    else:
+      pts[-1] = pts[-1] + pya.DPoint.new(self.end_offset, 0)
+      pts[-2] = pts[-2] + pya.DPoint.new(self.end_offset, 0)
+      
+    created_path = pya.DPath.new(pts, self.gap) # in um 
+  
+    return created_path
+         
+  def create_nth_region(self, region, n):
+    
+      rotation_angle =  360 / self.num_patterns * n + self.offset_rotation # degree
+      pivot_dpoint = pya.DPoint.new((self.finger_length + self.gap)/2, 0) + pya.DPoint.new(0, self.radius)          
+      trans_displacement = pya.ICplxTrans.new(pivot_dpoint.to_itype(self.layout.dbu))  # displacement transformation to make origin the rotation axis.
+      trans_rotation = pya.ICplxTrans.new(1, rotation_angle, False, 0, 0) # rotation around the origin
+      
+      region_out =  region.transformed(trans_displacement*trans_rotation*(trans_displacement.inverted()))
+       
+      return region_out
+
+  def center_cell_origin(self):
+    """
+    This script is to adjust origin to the center of bounding box for PCell.
+    """  
+    layerlist = self.layout.layer_indexes()
+    
+    bbox = self.cell.bbox() 
+    center_pnt = bbox.center()
+    
+    # This is equivalent to "Edit-&gt;Cell-&gt;Adjust Origin with 1) "Adjust instances in parents" undchecked
+    # 2) Put origin relative to cell's bounding box AT 'center'.
+    for layer in layerlist:
+        shapes = self.cell.shapes(layer)
+        shapes.transform(pya.Trans.new(-center_pnt.x, -center_pnt.y))
+        
+    # shift the cell instances in parent instances (equivalent to "Adjust instances in parents" in Edit-&gt;Cell-&gt;Adjust Origin).
+    # This makes the cell not shifte in its parent instances after the origin of the cell is adjusted.
+    for parent_inst in self.cell.each_parent_inst():
+      parent_inst.child_inst().transform(pya.Trans.new(center_pnt.x, center_pnt.y))
+
+</text>
+</klayout-macro>
