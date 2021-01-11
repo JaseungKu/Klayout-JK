@@ -42,7 +42,7 @@ class MakeInterdigitatedCap(pya.PCellDeclarationHelper):
     self.param("finger_length", self.TypeDouble, "finger length", default = 50)
     self.param("finger_width", self.TypeDouble, "finger width", default = 4)
     self.param("gap", self.TypeDouble, "gap", default = 2)
-    self.param("n", self.TypeInt, "Number of fingers", default = 20)     
+    self.param("n", self.TypeInt, "Number of U-turn", default = 20)     
        
     # this hidden parameter is used to determine whether the radius has changed
     # or the "s" handle has been moved
@@ -86,7 +86,8 @@ class MakeInterdigitatedCap(pya.PCellDeclarationHelper):
          
     # create a path
     gap_dpath = self.create_path()  # in um unit
-    height = self.calculate_height()
+    height = gap_dpath.bbox().height()
+#    height = self.calculate_height()
     dbox = pya.DBox.new(0, -height, self.width, 0)  # top-left corner is origin, i.e., (0,0).
                
     # turn path and box to region to do boolean operation
@@ -96,22 +97,21 @@ class MakeInterdigitatedCap(pya.PCellDeclarationHelper):
     # create shape
     self.cell.shapes(self.c_layer).insert(box_region - gap_region)
 
-  
   def create_path(self):
     
     # create path points
     path_starting_pnt = pya.DPoint.new((self.width -(self.finger_length + self.gap))/2, 0)
     
     pts = [path_starting_pnt]
-    delta_vertical_endpoint = pya.DPoint.new(0, -self.finger_width - self.gap/2)
+    delta_vertical_endpoint = pya.DPoint.new(0, -self.finger_width)
     delta_vertical_notendpoint = pya.DPoint.new(0, -self.finger_width - self.gap)
-    delta_horizontal = pya.DPoint.new(self.finger_length + self.gap, 0)
+    delta_horizontal = pya.DPoint.new(self.finger_length, 0)
     
-    num_point_path = 2 * self.n
+    num_deltas = 2* self.n + 3
     
     # get deltas except first and last delta
     deltas = []
-    for i in range(1, num_point_path-2):
+    for i in range(1, num_deltas-1):
       if i%2==0:
         deltas.append(delta_vertical_notendpoint)
       else:
@@ -122,13 +122,14 @@ class MakeInterdigitatedCap(pya.PCellDeclarationHelper):
     deltas.insert(0, delta_vertical_endpoint)
     deltas.append(delta_vertical_endpoint)
     
-    for i in range(num_point_path-1):
+    # create path points
+    for i in range(num_deltas):
       pts.append(pts[-1] + deltas[i])
-
+         
     created_path = pya.DPath.new(pts, self.gap) # in um 
   
     return created_path
-  
+            
       
   def calculate_height(self):
     """ Calculate heigh of the capacitor, given finger width and number of fingers in um"""

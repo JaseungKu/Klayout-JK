@@ -39,11 +39,11 @@ class MakeMeanderInductor(pya.PCellDeclarationHelper):
      
     # parameter in um 
     self.param("finger_length", self.TypeDouble, "Finger length", default = 50)
-    self.param("finger_width", self.TypeDouble, "Finger width", default = 4)
+    self.param("finger_width", self.TypeDouble, "Finger width", default = 2)
     self.param("gap", self.TypeDouble, "Gap", default = 2)
     self.param("end_offset", self.TypeDouble, "Endpoint offset", default = 0)
     self.param("end_extension", self.TypeDouble, "Endpoint extension", default = 0)
-    self.param("n", self.TypeInt, "Number of fingers", default = 20)     
+    self.param("n", self.TypeInt, "Number of U-turn", default = 20)     
        
     # this hidden parameter is used to determine whether the radius has changed
     # or the "s" handle has been moved
@@ -77,8 +77,8 @@ class MakeMeanderInductor(pya.PCellDeclarationHelper):
    # 
    # self.rd = 2*self.r
     
-    if self.n &lt; 3:
-      self.n = 3
+    if self.n &lt; 1:
+      self.n = 1
       
           
   def can_create_from_shape_impl(self):
@@ -99,12 +99,10 @@ class MakeMeanderInductor(pya.PCellDeclarationHelper):
     #return pya.Trans(self.shape.bbox().center())
        
   def produce_impl(self):
-
-    # Here comes my code
          
     # create a path
     gap_dpath = self.create_path()  # in um unit
-               
+
     # create shape
     self.cell.shapes(self.c_layer).insert(gap_dpath.to_itype(self.layout.dbu))
 
@@ -115,15 +113,15 @@ class MakeMeanderInductor(pya.PCellDeclarationHelper):
     path_starting_pnt = pya.DPoint.new(0,0)
     
     pts = [path_starting_pnt]
-    delta_vertical_endpoint = pya.DPoint.new(0, -self.finger_width - self.gap/2 - self.end_extension)
+    delta_vertical_endpoint = pya.DPoint.new(0, -self.finger_width - self.end_extension)
     delta_vertical_notendpoint = pya.DPoint.new(0, -self.finger_width - self.gap)
-    delta_horizontal = pya.DPoint.new(self.finger_length + self.gap, 0)
+    delta_horizontal = pya.DPoint.new(self.finger_length, 0)
     
-    num_point_path = 2 * self.n
+    num_deltas = 2* self.n + 3
     
     # get deltas except first and last delta
     deltas = []
-    for i in range(1, num_point_path-2):
+    for i in range(1, num_deltas-1):
       if i%2==0:
         deltas.append(delta_vertical_notendpoint)
       else:
@@ -135,7 +133,7 @@ class MakeMeanderInductor(pya.PCellDeclarationHelper):
     deltas.append(delta_vertical_endpoint)
     
     # create path points
-    for i in range(num_point_path-1):
+    for i in range(num_deltas):
       pts.append(pts[-1] + deltas[i])
     
     # Give offset of both ends

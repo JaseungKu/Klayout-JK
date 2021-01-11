@@ -94,13 +94,22 @@ class PathToCPWPlus(pya.PCellDeclarationHelper):
     
     # turn path to region to do boolean operation
     cc_region = pya.Region.new(pya.Path.new(cc_dpath_rounded.to_itype(self.layout.dbu)))  # to_itype method to translate the floating-point coordinate path in micron units to an integer-coordinate path in database units.
-    gap_region = pya.Region.new(pya.Path.new(gap_dpath_rounded.to_itype(self.layout.dbu))) - cc_region
+    gap_region = pya.Region.new(pya.Path.new(gap_dpath_rounded.to_itype(self.layout.dbu)))
    # keepout_region = pya.Region.new(pya.Path.new(keepout_dpath_rounded.to_itype(self.layout.dbu)))
  
+    # substrate gap_region from all objects in c_layer to make gap in CPW
+#    app = pya.Application.instance()
+#    mw = app.main_window()
+#    lv = mw.current_view() # layoutview for current layout tab
+#    cv = lv.active_cellview() # cellview
+#    ly = cv.layout() 
+#    for parent_cell in self.cell.each_parent_cell():
+#      ly.cell(parent_cell).begin_shapes_rec().shape()
+
+
     # create shape
     self.cell.shapes(self.c_layer).insert(cc_region)
-    self.cell.shapes(self.p_layer).insert(gap_region)
-    
+    self.cell.shapes(self.p_layer).insert(gap_region)     
     #self.cell.shapes(self.k_layer).insert(keepout_region)
 
    </text>

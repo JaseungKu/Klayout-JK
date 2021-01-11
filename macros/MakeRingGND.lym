@@ -6,7 +6,7 @@
  <prolog/>
  <epilog/>
  <doc/>
- <autorun>false</autorun>
+ <autorun>true</autorun>
  <autorun-early>false</autorun-early>
  <shortcut/>
  <show-in-menu>false</show-in-menu>
@@ -41,7 +41,8 @@ class MakeRingGND(pya.PCellDeclarationHelper):
     self.param("length", self.TypeDouble, "Box Length", default = 3150)    
     self.param("height", self.TypeDouble, "Box Height", default = 3150)    
     self.param("radius", self.TypeDouble, "Radius", default = 500)    
-    self.param("n", self.TypeInt, "Number of points", default = 360)    
+    self.param("n", self.TypeInt, "Number of points", default = 360) 
+    self.param("offset_rotation", self.TypeDouble, "Offset rotation (deg)", default = 0)        
         
     # this hidden parameter is used to determine whether the radius has changed
     # or the "s" handle has been moved
@@ -113,7 +114,11 @@ class MakeRingGND(pya.PCellDeclarationHelper):
     
     circle = pya.DPolygon.new(pts)
     
-    return circle
+    trans_rotation = pya.DCplxTrans.new(1, self.offset_rotation, False, 0, 0) # rotation around the origin
+      
+    circle_rotated = trans_rotation*circle 
+ 
+    return circle_rotated
     
   def center_cell_origin(self):
     """

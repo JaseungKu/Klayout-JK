@@ -38,7 +38,7 @@ class MakeRingCap(pya.PCellDeclarationHelper):
     #self.param("rot_axis_x", self.TypeDouble, "Rotation axis, x", default = 0)
     #self.param("rot_axis_y", self.TypeDouble, "Rotation axis, y", default = 0)
     self.param("radius", self.TypeDouble, "Radius", default = 500)    
-    self.param("num_patterns", self.TypeInt, "Number of patterns", default = 12)     
+    self.param("num_patterns", self.TypeInt, "Number of patterns", default = 24)     
     self.param("offset_rotation", self.TypeDouble, "Offset rotation (deg)", default = 0)     
     self.param("connect_neighbor_cap", self.TypeBoolean, "Connet neighbor cap.?", default = False)     
         
@@ -46,9 +46,9 @@ class MakeRingCap(pya.PCellDeclarationHelper):
     self.param("width", self.TypeDouble, "total width", default = 100)
     self.param("finger_length", self.TypeDouble, "finger length", default = 50)
     self.param("finger_width", self.TypeDouble, "finger width", default = 4)
-    self.param("gap", self.TypeDouble, "gap", default = 2)
-    self.param("num_fingers", self.TypeInt, "Number of fingers", default = 20)     
-  
+    self.param("gap", self.TypeDouble, "gap", default = 1)
+    self.param("n", self.TypeInt, "Number of U-turn", default = 20)     
+    self.param("rotation_cap", self.TypeDouble, "Rotation of cap. (deg)", default = 0)     
     
   def display_text_impl(self):
     # Provide a descriptive text for the cell
@@ -61,8 +61,8 @@ class MakeRingCap(pya.PCellDeclarationHelper):
     # numeric parameter has changed (by comparing against the effective 
     # radius ru) and set ru to the effective radius. We also update the 
     # numerical value or the shape, depending on which one has not changed.
-    if self.num_fingers &lt; 3:
-      self.num_fingers = 3
+    if self.n &lt; 3:
+      self.n = 3
  
   def can_create_from_shape_impl(self):
     # Implement the "Create PCell from shape" protocol: we can use any shape which 
@@ -87,8 +87,9 @@ class MakeRingCap(pya.PCellDeclarationHelper):
 
     # create interdigitated capacitor as a unit cell
     gap_dpath = self.create_path()  # in um unit
-    height = self.calculate_height()
-    dbox = pya.DBox.new(0, -height, self.width, 0)  # top-left corner is origin, i.e., (0,0).
+    height = gap_dpath.bbox().height()
+#    height = self.calculate_height()
+    dbox = pya.DBox.new(0, -height, self.width, 0)  #### top-left corner is origin, i.e., (0,0).
                
     # turn path and box to region to do boolean operation
     gap_region = pya.Region.new(pya.Path.new(gap_dpath.to_itype(self.layout.dbu)))  # to_itype method to translate the floating-point coordinate path in micron units to an integer-coordinate path in database units.
@@ -98,7 +99,10 @@ class MakeRingCap(pya.PCellDeclarationHelper):
     base_region_to_duplicate = interdigitated_cap_region
     if self.connect_neighbor_cap: 
       base_region_to_duplicate = self.create_single_capacitor_pad(base_region_to_duplicate)
-      
+    
+    # rotate base_region_to_duplicate
+    base_region_to_duplicate = self.rotation_base_region(base_region_to_duplicate)
+     
     # create circular patterns   
     for n in range(self.num_patterns):     
       next_region = self.create_nth_region(base_region_to_duplicate, n)
@@ -117,8 +121,21 @@ class MakeRingCap(pya.PCellDeclarationHelper):
       region_out =  region.transformed(trans_displacement*trans_rotation*(trans_displacement.inverted()))
        
       return region_out
+
+  def rotation_base_region(self, region):
+      height = self.calculate_height()
+      
+      rotation_angle =  self.rotation_cap  # degree
+      pivot_dpoint = pya.DPoint.new(self.width/2, 0) + pya.DPoint.new(0, -height/2)          
+      trans_displacement = pya.ICplxTrans.new(pivot_dpoint.to_itype(self.layout.dbu))  # displacement transformation to make origin the rotation axis.
+      trans_rotation = pya.ICplxTrans.new(1, rotation_angle, False, 0, 0) # rotation around the origin
+      
+      region_out =  region.transformed(trans_displacement*trans_rotation*(trans_displacement.inverted()))
+       
+      return region_out
       
   def create_single_capacitor_pad(self, region):
+    """ To create a single capacitor pad which is made by merging interdigitated capacitor pads and a polygon connecting those two pads"""
     
     polygon_left, polygon_right = self.find_each_polygon(region) # polygon_left = left capacitor pad
               
@@ -156,8 +173,41 @@ class MakeRingCap(pya.PCellDeclarationHelper):
       polygon_left, polygon_right = polygon_right, polygon_left
     
     return polygon_left, polygon_right
-      
+    
   def create_path(self):
+    
+    # create path points
+    path_starting_pnt = pya.DPoint.new((self.width -(self.finger_length + self.gap))/2, 0)
+    
+    pts = [path_starting_pnt]
+    delta_vertical_endpoint = pya.DPoint.new(0, -self.finger_width)
+    delta_vertical_notendpoint = pya.DPoint.new(0, -self.finger_width - self.gap)
+    delta_horizontal = pya.DPoint.new(self.finger_length, 0)
+    
+    num_deltas = 2* self.n + 3
+    
+    # get deltas except first and last delta
+    deltas = []
+    for i in range(1, num_deltas-1):
+      if i%2==0:
+        deltas.append(delta_vertical_notendpoint)
+      else:
+        deltas.append(delta_horizontal)  
+        delta_horizontal = delta_horizontal * (-1)
+        
+    # insert start and end delta
+    deltas.insert(0, delta_vertical_endpoint)
+    deltas.append(delta_vertical_endpoint)
+    
+    # create path points
+    for i in range(num_deltas):
+      pts.append(pts[-1] + deltas[i])
+         
+    created_path = pya.DPath.new(pts, self.gap) # in um 
+  
+    return created_path
+       
+  def create_path_old(self):
     
     # create path points
     path_starting_pnt = pya.DPoint.new((self.width -(self.finger_length + self.gap))/2, 0)
@@ -167,7 +217,7 @@ class MakeRingCap(pya.PCellDeclarationHelper):
     delta_vertical_notendpoint = pya.DPoint.new(0, -self.finger_width - self.gap)
     delta_horizontal = pya.DPoint.new(self.finger_length + self.gap, 0)
     
-    num_point_path = 2 * self.num_fingers
+    num_point_path = 2 * self.n
     
     # get deltas except first and last delta
     deltas = []
@@ -193,7 +243,7 @@ class MakeRingCap(pya.PCellDeclarationHelper):
   def calculate_height(self):
     """ Calculate heigh of the capacitor, given finger width and number of fingers in um"""
     
-    height = self.finger_width * self.num_fingers + self.gap * (self.num_fingers-1)
+    height = self.finger_width * self.n + self.gap * (self.n-1)
     
     return height 
 
