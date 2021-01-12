@@ -17,6 +17,7 @@
  <text># Jaseung Ku, Dec 2020
 
 import pya
+from scipy.special import ellipk
 
 class MakeInterdigitatedCap(pya.PCellDeclarationHelper):
   """
@@ -35,7 +36,7 @@ class MakeInterdigitatedCap(pya.PCellDeclarationHelper):
 #    self.param("i", self.TypeLayer, "IMAGE BBOX Layer", default = pya.LayerInfo(0, 3))
 #    self.param("s", self.TypeShape, "", default = pya.Path.new())
    
-    self.param("name", self.TypeString, "Name", default='InterdigitatedCap')
+    self.param("name", self.TypeString, "Name", default='IDC')
      
     # parameter in um 
     self.param("total_width", self.TypeDouble, "Total width", default = 100)
@@ -52,8 +53,9 @@ class MakeInterdigitatedCap(pya.PCellDeclarationHelper):
   def display_text_impl(self):
     # Provide a descriptive text for the cell
   #  return "MakeInterdigitatedCap(length=" + str(self.tl) + ",gap width=" + ('%.3f' % self.gw) + ")"
+    C  = self.calculate_interdigitated_capacitance()
 
-    return self.name
+    return f'{self.name}_C={C:.1f}fF'
 #    return f'l={int(self.finger_length)}_w={int(self.finger_width)}_g={int(self.finger_gap)}_N={int(self.n)}_tw={int(self.total_width)}' 
     
   def coerce_parameters_impl(self):
@@ -130,5 +132,26 @@ class MakeInterdigitatedCap(pya.PCellDeclarationHelper):
          
     created_path = pya.DPath.new(pts, self.finger_gap) # in um 
   
-    return created_path</text>
+    return created_path
+
+  def calculate_interdigitated_capacitance(self):
+    """
+    Calculate interdigitated capacitor.Assumed the substrate is Silicon and no gnd under substrate.
+    Ref: Microstrip lines and slotlines by K.C. Gupta et al. 
+    
+    
+    Return:
+            Capacitance in fF
+    """
+    a = self.finger_width/2
+    b = (self.finger_width + self.finger_gap)/2
+    
+    k = np.tan(a*np.pi/4/b)**2
+    k_p = np.sqrt(1-k**2)
+    epsilon_re = (11.7 + 1)/2  # coplanar like case. No ground under substrate.
+        
+    C_interdigital = (epsilon_re/18/np.pi)*(ellipk(k)/ellipk(k_p)) \
+                    *(self.num_fingers-1)*self.finger_length
+    
+    return C_interdigital</text>
 </klayout-macro>
