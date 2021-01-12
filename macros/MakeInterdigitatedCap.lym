@@ -38,11 +38,11 @@ class MakeInterdigitatedCap(pya.PCellDeclarationHelper):
     self.param("name", self.TypeString, "Name", default='InterdigitatedCap')
      
     # parameter in um 
-    self.param("width", self.TypeDouble, "total width", default = 100)
-    self.param("finger_length", self.TypeDouble, "finger length", default = 50)
-    self.param("finger_width", self.TypeDouble, "finger width", default = 4)
-    self.param("gap", self.TypeDouble, "gap", default = 2)
-    self.param("n", self.TypeInt, "Number of U-turn", default = 20)     
+    self.param("total_width", self.TypeDouble, "Total width", default = 100)
+    self.param("finger_length", self.TypeDouble, "Finger length", default = 50)
+    self.param("finger_width", self.TypeDouble, "Finger width", default = 4)
+    self.param("finger_gap", self.TypeDouble, "Finger gap", default = 1)    
+    self.param("num_fingers", self.TypeInt, "Number of fingers", default = 20)     
        
     # this hidden parameter is used to determine whether the radius has changed
     # or the "s" handle has been moved
@@ -52,7 +52,9 @@ class MakeInterdigitatedCap(pya.PCellDeclarationHelper):
   def display_text_impl(self):
     # Provide a descriptive text for the cell
   #  return "MakeInterdigitatedCap(length=" + str(self.tl) + ",gap width=" + ('%.3f' % self.gw) + ")"
+
     return self.name
+#    return f'l={int(self.finger_length)}_w={int(self.finger_width)}_g={int(self.finger_gap)}_N={int(self.n)}_tw={int(self.total_width)}' 
     
   def coerce_parameters_impl(self):
   
@@ -61,8 +63,8 @@ class MakeInterdigitatedCap(pya.PCellDeclarationHelper):
     # radius ru) and set ru to the effective radius. We also update the 
     # numerical value or the shape, depending on which one has not changed.
      
-    if self.n &lt; 3:
-      self.n = 3
+    if self.num_fingers &lt; 2:
+      self.num_fingers = 2
       
           
   def can_create_from_shape_impl(self):
@@ -88,7 +90,7 @@ class MakeInterdigitatedCap(pya.PCellDeclarationHelper):
     gap_dpath = self.create_path()  # in um unit
     height = gap_dpath.bbox().height()
 #    height = self.calculate_height()
-    dbox = pya.DBox.new(0, -height, self.width, 0)  # top-left corner is origin, i.e., (0,0).
+    dbox = pya.DBox.new(0, -height, self.total_width, 0)  # top-left corner is origin, i.e., (0,0).
                
     # turn path and box to region to do boolean operation
     gap_region = pya.Region.new(pya.Path.new(gap_dpath.to_itype(self.layout.dbu)))  # to_itype method to translate the floating-point coordinate path in micron units to an integer-coordinate path in database units.
@@ -100,14 +102,14 @@ class MakeInterdigitatedCap(pya.PCellDeclarationHelper):
   def create_path(self):
     
     # create path points
-    path_starting_pnt = pya.DPoint.new((self.width -(self.finger_length + self.gap))/2, 0)
+    path_starting_pnt = pya.DPoint.new((self.total_width - self.finger_length - self.finger_gap)/2, 0)
     
     pts = [path_starting_pnt]
-    delta_vertical_endpoint = pya.DPoint.new(0, -self.finger_width)
-    delta_vertical_notendpoint = pya.DPoint.new(0, -self.finger_width - self.gap)
-    delta_horizontal = pya.DPoint.new(self.finger_length, 0)
+    delta_vertical_endpoint = pya.DPoint.new(0, -self.finger_width - self.finger_gap/2)
+    delta_vertical_notendpoint = pya.DPoint.new(0, -self.finger_width - self.finger_gap)
+    delta_horizontal = pya.DPoint.new(self.finger_length+self.finger_gap, 0)
     
-    num_deltas = 2* self.n + 3
+    num_deltas = 2* self.num_fingers - 1
     
     # get deltas except first and last delta
     deltas = []
@@ -126,19 +128,7 @@ class MakeInterdigitatedCap(pya.PCellDeclarationHelper):
     for i in range(num_deltas):
       pts.append(pts[-1] + deltas[i])
          
-    created_path = pya.DPath.new(pts, self.gap) # in um 
+    created_path = pya.DPath.new(pts, self.finger_gap) # in um 
   
-    return created_path
-            
-      
-  def calculate_height(self):
-    """ Calculate heigh of the capacitor, given finger width and number of fingers in um"""
-    
-    height = self.finger_width * self.n + self.gap * (self.n-1)
-    
-    return height 
-        
-
-
-</text>
+    return created_path</text>
 </klayout-macro>

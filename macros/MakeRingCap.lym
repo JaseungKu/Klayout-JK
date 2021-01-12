@@ -43,11 +43,11 @@ class MakeRingCap(pya.PCellDeclarationHelper):
     self.param("connect_neighbor_cap", self.TypeBoolean, "Connet neighbor cap.?", default = False)     
         
     # parameter for interdigitated capacitor
-    self.param("width", self.TypeDouble, "total width", default = 100)
-    self.param("finger_length", self.TypeDouble, "finger length", default = 50)
-    self.param("finger_width", self.TypeDouble, "finger width", default = 4)
-    self.param("gap", self.TypeDouble, "gap", default = 1)
-    self.param("n", self.TypeInt, "Number of U-turn", default = 20)     
+    self.param("total_width", self.TypeDouble, "total width", default = 100)
+    self.param("finger_length", self.TypeDouble, "Finger length", default = 50)
+    self.param("finger_width", self.TypeDouble, "Finger width", default = 4)
+    self.param("finger_gap", self.TypeDouble, "Finger gap", default = 1)
+    self.param("num_fingers", self.TypeInt, "Number of fingers", default = 20)     
     self.param("rotation_cap", self.TypeDouble, "Rotation of cap. (deg)", default = 0)     
     
   def display_text_impl(self):
@@ -61,8 +61,8 @@ class MakeRingCap(pya.PCellDeclarationHelper):
     # numeric parameter has changed (by comparing against the effective 
     # radius ru) and set ru to the effective radius. We also update the 
     # numerical value or the shape, depending on which one has not changed.
-    if self.n &lt; 3:
-      self.n = 3
+    if self.num_fingers &lt; 2:
+      self.num_fingers = 2
  
   def can_create_from_shape_impl(self):
     # Implement the "Create PCell from shape" protocol: we can use any shape which 
@@ -89,7 +89,7 @@ class MakeRingCap(pya.PCellDeclarationHelper):
     gap_dpath = self.create_path()  # in um unit
     height = gap_dpath.bbox().height()
 #    height = self.calculate_height()
-    dbox = pya.DBox.new(0, -height, self.width, 0)  #### top-left corner is origin, i.e., (0,0).
+    dbox = pya.DBox.new(0, -height, self.total_width, 0)  #### top-left corner is origin, i.e., (0,0).
                
     # turn path and box to region to do boolean operation
     gap_region = pya.Region.new(pya.Path.new(gap_dpath.to_itype(self.layout.dbu)))  # to_itype method to translate the floating-point coordinate path in micron units to an integer-coordinate path in database units.
@@ -114,7 +114,7 @@ class MakeRingCap(pya.PCellDeclarationHelper):
   def create_nth_region(self, region, n):
     
       rotation_angle =  360 / self.num_patterns * n + self.offset_rotation # degree
-      pivot_dpoint = pya.DPoint.new(self.width/2, 0) + pya.DPoint.new(0, self.radius)          
+      pivot_dpoint = pya.DPoint.new(self.total_width/2, 0) + pya.DPoint.new(0, self.radius)          
       trans_displacement = pya.ICplxTrans.new(pivot_dpoint.to_itype(self.layout.dbu))  # displacement transformation to make origin the rotation axis.
       trans_rotation = pya.ICplxTrans.new(1, rotation_angle, False, 0, 0) # rotation around the origin
       
@@ -123,10 +123,15 @@ class MakeRingCap(pya.PCellDeclarationHelper):
       return region_out
 
   def rotation_base_region(self, region):
-      height = self.calculate_height()
-      
+ 
+     # height = self.calculate_height()
+      dbbox = region.bbox().to_dtype(self.layout.dbu)
+      height = dbbox.height()
+      width = dbbox.width()
+          
       rotation_angle =  self.rotation_cap  # degree
-      pivot_dpoint = pya.DPoint.new(self.width/2, 0) + pya.DPoint.new(0, -height/2)          
+#      pivot_dpoint = pya.DPoint.new(self.total_width/2, 0) + pya.DPoint.new(0, -height/2)          
+      pivot_dpoint = pya.DPoint.new(width/2, 0) + pya.DPoint.new(0, -height/2)          
       trans_displacement = pya.ICplxTrans.new(pivot_dpoint.to_itype(self.layout.dbu))  # displacement transformation to make origin the rotation axis.
       trans_rotation = pya.ICplxTrans.new(1, rotation_angle, False, 0, 0) # rotation around the origin
       
@@ -147,7 +152,7 @@ class MakeRingCap(pya.PCellDeclarationHelper):
     point_tl = pya.Point.new(bbox.left, bbox.top)
 
     rotation_angle =  360 / self.num_patterns
-    pivot_dpoint = pya.DPoint.new(self.width/2, 0) + pya.DPoint.new(0, self.radius) 
+    pivot_dpoint = pya.DPoint.new(self.total_width/2, 0) + pya.DPoint.new(0, self.radius) 
     trans_displacement = pya.ICplxTrans.new(pivot_dpoint.to_itype(self.layout.dbu))  # displacement transformation to make origin the rotation axis.
     trans_rotation = pya.ICplxTrans.new(1, rotation_angle, False, 0, 0) # rotation around the origin
     
@@ -177,14 +182,14 @@ class MakeRingCap(pya.PCellDeclarationHelper):
   def create_path(self):
     
     # create path points
-    path_starting_pnt = pya.DPoint.new((self.width -(self.finger_length + self.gap))/2, 0)
+    path_starting_pnt = pya.DPoint.new((self.total_width -self.finger_length)/2, 0)
     
     pts = [path_starting_pnt]
-    delta_vertical_endpoint = pya.DPoint.new(0, -self.finger_width)
-    delta_vertical_notendpoint = pya.DPoint.new(0, -self.finger_width - self.gap)
+    delta_vertical_endpoint = pya.DPoint.new(0, -self.finger_width - self.finger_gap/2)
+    delta_vertical_notendpoint = pya.DPoint.new(0, -self.finger_width - self.finger_gap)
     delta_horizontal = pya.DPoint.new(self.finger_length, 0)
     
-    num_deltas = 2* self.n + 3
+    num_deltas = 2* self.num_fingers - 1
     
     # get deltas except first and last delta
     deltas = []
@@ -203,47 +208,14 @@ class MakeRingCap(pya.PCellDeclarationHelper):
     for i in range(num_deltas):
       pts.append(pts[-1] + deltas[i])
          
-    created_path = pya.DPath.new(pts, self.gap) # in um 
+    created_path = pya.DPath.new(pts, self.finger_gap) # in um 
   
-    return created_path
-       
-  def create_path_old(self):
-    
-    # create path points
-    path_starting_pnt = pya.DPoint.new((self.width -(self.finger_length + self.gap))/2, 0)
-    
-    pts = [path_starting_pnt]
-    delta_vertical_endpoint = pya.DPoint.new(0, -self.finger_width - self.gap/2)
-    delta_vertical_notendpoint = pya.DPoint.new(0, -self.finger_width - self.gap)
-    delta_horizontal = pya.DPoint.new(self.finger_length + self.gap, 0)
-    
-    num_point_path = 2 * self.n
-    
-    # get deltas except first and last delta
-    deltas = []
-    for i in range(1, num_point_path-2):
-      if i%2==0:
-        deltas.append(delta_vertical_notendpoint)
-      else:
-        deltas.append(delta_horizontal)  
-        delta_horizontal = delta_horizontal * (-1)
-        
-    # insert start and end delta
-    deltas.insert(0, delta_vertical_endpoint)
-    deltas.append(delta_vertical_endpoint)
-    
-    for i in range(num_point_path-1):
-      pts.append(pts[-1] + deltas[i])
-
-    created_path = pya.DPath.new(pts, self.gap) # in um 
-  
-    return created_path
-  
+    return created_path 
       
   def calculate_height(self):
     """ Calculate heigh of the capacitor, given finger width and number of fingers in um"""
     
-    height = self.finger_width * self.n + self.gap * (self.n-1)
+    height = self.finger_width * self.num_fingers + self.finger_gap * (self.num_fingers-1)
     
     return height 
 
