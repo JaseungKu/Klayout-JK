@@ -78,7 +78,7 @@ class PolygonToCircularPattern(pya.PCellDeclarationHelper):
       selected_shape_copy = self.create_next_shape(selected_shape_copy, n)     
       self.cell.shapes(self.c_layer).insert(selected_shape_copy)
   
-    self.center_cell_origin()
+#    self.center_cell_origin()
     
   def create_next_shape(self, shape, n):
   
