@@ -74,11 +74,12 @@ class PolygonToCircularPattern(pya.PCellDeclarationHelper):
   def produce_impl(self):
      
     for n in range(self.num_pattern):   
-      selected_shape_copy = self.s.dup() #  make a copy of selected shape      
+#      selected_shape_copy = self.s.dup() #  make a copy of selected shape      
+      selected_shape_copy = self.s
       selected_shape_copy = self.create_next_shape(selected_shape_copy, n)     
       self.cell.shapes(self.c_layer).insert(selected_shape_copy)
   
-#    self.center_cell_origin()
+#     self.center_cell_origin()
     
   def create_next_shape(self, shape, n):
   
