@@ -44,7 +44,7 @@ class MakeRingInductor(pya.PCellDeclarationHelper):
     # parameter in um 
     self.param("length", self.TypeDouble, "Length", default = 50)
     self.param("width", self.TypeDouble, "Width", default = 2)
-    self.param("gap", self.TypeDouble, "Gap", default = 2)
+    self.param("gap", self.TypeDouble, "Gap", default = 3)
     self.param("end_offset", self.TypeDouble, "Endpoint offset", default = 0)
     self.param("end_extension", self.TypeDouble, "Endpoint extension", default = 0)
     self.param("n", self.TypeInt, "Number of U-turn", default = 20)     
