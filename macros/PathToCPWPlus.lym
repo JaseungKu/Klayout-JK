@@ -6,7 +6,7 @@
  <prolog/>
  <epilog/>
  <doc/>
- <autorun>false</autorun>
+ <autorun>true</autorun>
  <autorun-early>false</autorun-early>
  <shortcut/>
  <show-in-menu>false</show-in-menu>
@@ -14,7 +14,11 @@
  <menu-path/>
  <interpreter>python</interpreter>
  <dsl-interpreter-name/>
- <text># Jaseung Ku, Dec 2020
+ <text># Jaseung Ku, Feb 2021
+# This PCell turns a path into a CPW, which consists of a center conductor and two gaps. 
+# The area of the center conductor and gaps is substrated from any overlapping shape, and then 
+# the center conductor area is added, making a PCell.
+# Currenly, thic PCell can't be updated since if a parameter changes changed or the guided shape changes, Klayout throws an error.
 
 import pya
 import math
@@ -36,7 +40,8 @@ class PathToCPWPlus(pya.PCellDeclarationHelper):
     self.param("c", self.TypeLayer, "IMAGE Layer", default = pya.LayerInfo(1, 0))
     self.param("s", self.TypeShape, "", default = pya.DPath.new())   # Use "D-type" shapes
     self.param("name", self.TypeString,"CPW name", default='PathToCPWPlus')
-    
+    self.param("current_cell_name", self.TypeString,"Current cell name", default="", hidden=True)
+        
     # parameters in um 
     self.param("cr", self.TypeDouble, "center conductor radius", default = 100)
     self.param("cw", self.TypeDouble, "c.c width", default = 10)
@@ -69,6 +74,8 @@ class PathToCPWPlus(pya.PCellDeclarationHelper):
     # self.tmp = self.shape.bbox().width() * self.layout.dbu / 2
     # self.l = self.layout.get_info(self.layer)
     self.s = self.shape.dpath # read selected path obj. dpath in um unit
+    self.current_cell_name = self.shape.cell.name
+
                       
   def transformation_from_shape_impl(self):
     # Implement the "Create PCell from shape" protocol: we use the center of the shape's
@@ -97,20 +104,33 @@ class PathToCPWPlus(pya.PCellDeclarationHelper):
     gap_region = pya.Region.new(pya.Path.new(gap_dpath_rounded.to_itype(self.layout.dbu)))
    # keepout_region = pya.Region.new(pya.Path.new(keepout_dpath_rounded.to_itype(self.layout.dbu)))
  
-    # substrate gap_region from all objects in c_layer to make gap in CPW
-#    app = pya.Application.instance()
-#    mw = app.main_window()
-#    lv = mw.current_view() # layoutview for current layout tab
-#    cv = lv.active_cellview() # cellview
-#    ly = cv.layout() 
-#    for parent_cell in self.cell.each_parent_cell():
-#      ly.cell(parent_cell).begin_shapes_rec().shape()
-
-
-    # create shape
+    # create center conductor
     self.cell.shapes(self.c_layer).insert(cc_region)
-    self.cell.shapes(self.p_layer).insert(gap_region)     
-    #self.cell.shapes(self.k_layer).insert(keepout_region)
+    # self.cell.shapes(self.p_layer).insert(gap_region)     
+    # self.cell.shapes(self.k_layer).insert(keepout_region)
 
-   </text>
+    # from user interface, get layout object
+    app = pya.Application.instance()
+    mw = app.main_window()
+    lv = mw.current_view() # layoutview for current layout tab
+    cv = lv.active_cellview() # cellview
+    ly = cv.layout() # layout object that contains cell shown. layout = collection of cells and geometrical shapes
+
+    #print(ly.cell(self.current_cell_name).cell_index())
+    iter = ly.begin_shapes_overlapping(ly.cell(self.current_cell_name).cell_index(), self.c_layer, gap_region.bbox()) #iterator
+    num_overlap = 0
+    
+    while not iter.at_end():
+      num_overlap += 1
+     # print(iter.shape().shapes())
+      shape_to_region = pya.Region.new(iter.shape().shapes()) #      iter.shape()
+
+      iter.shape().shapes().erase(iter.shape())
+      iter.shape().shapes().insert(shape_to_region - gap_region)
+      
+      iter.next()
+          
+    print(f'Number of overlapping shapes = {num_overlap}')
+
+    </text>
 </klayout-macro>

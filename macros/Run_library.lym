@@ -41,7 +41,7 @@ class MyLib(pya.Library):
     self.layout().register_pcell("MakeRingCap", MakeRingCap())
     self.layout().register_pcell("MakeRingInductor", MakeRingInductor())
     self.layout().register_pcell("MakeRingGND", MakeRingGND())
- #   self.layout().register_pcell("PathToCPWPlus", PathToCPWPlus())
+    self.layout().register_pcell("PathToCPWPlus", PathToCPWPlus())
   
     # That would be the place to put in more PCells ...
     
