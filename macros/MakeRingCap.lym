@@ -43,7 +43,7 @@ class MakeRingCap(pya.PCellDeclarationHelper):
     self.param("connect_neighbor_cap", self.TypeBoolean, "Connet neighbor cap.?", default = False)     
         
     # parameter for interdigitated capacitor
-    self.param("total_width", self.TypeDouble, "total width", default = 100)
+    self.param("total_width", self.TypeDouble, "total width", default = 70)
     self.param("finger_length", self.TypeDouble, "Finger length", default = 50)
     self.param("finger_width", self.TypeDouble, "Finger width", default = 4)
     self.param("finger_gap", self.TypeDouble, "Finger gap", default = 1)
