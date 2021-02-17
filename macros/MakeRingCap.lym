@@ -250,15 +250,20 @@ class MakeRingCap(pya.PCellDeclarationHelper):
     Return:
             Capacitance in fF
     """
+    h = 525 # thickness of Si in um
+    w = 4 # width in um
+    
     a = self.finger_width/2
     b = (self.finger_width + self.finger_gap)/2
     
     k = np.tan(a*np.pi/4/b)**2
     k_p = np.sqrt(1-k**2)
-    epsilon_re = (11.7 + 1)/2  # coplanar like case. No ground under substrate.
+
+    e_r = 11.9
+    epsilon_re = (e_r + 1)/2 + (e_r-1)/2*(np.log(np.pi/2)+(1/e_r)*np.log(4/np.pi))/np.log(8*h/w)        
         
     C_interdigital = (epsilon_re/18/np.pi)*(ellipk(k)/ellipk(k_p)) \
                     *(self.num_fingers-1)*self.finger_length
     
-    return C_interdigital       </text>
+    return C_interdigital    </text>
 </klayout-macro>
