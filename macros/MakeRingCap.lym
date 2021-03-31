@@ -49,6 +49,9 @@ class MakeRingCap(pya.PCellDeclarationHelper):
     self.param("finger_gap", self.TypeDouble, "Finger gap", default = 1)
     self.param("num_fingers", self.TypeInt, "Number of fingers", default = 20)     
     self.param("rotation_cap", self.TypeDouble, "Rotation of cap. (deg)", default = 0)     
+
+    self.param("arm_length", self.TypeDouble, "Arm length", default = 0) 
+    self.param("arm_width", self.TypeDouble, "Arm width", default = 0) 
     
   def display_text_impl(self):
     # Provide a descriptive text for the cell
@@ -75,7 +78,7 @@ class MakeRingCap(pya.PCellDeclarationHelper):
   def parameters_from_shape_impl(self):
     # Implement the "Create PCell from shape" protocol: we set r and l from the shape's 
     # bounding box width and layer
-    # self.tmp = self.shape.bbox().width() * self.layout.dbu / 2
+    # self.tmp = self2.shape.bbox().width() * self.layout.dbu / 2
     # self.l = self.layout.get_info(self.layer)
     # self.s = self.shape.dpolygon # read selected dpolygon in um unit 
     pass
@@ -87,7 +90,7 @@ class MakeRingCap(pya.PCellDeclarationHelper):
        
   def produce_impl(self):
 
-    # create interdigitated capacitor as a unit cell
+    # create interdig2itated capacitor as a unit cell
     gap_dpath = self.create_path()  # in um unit
     height = gap_dpath.bbox().height()
 #    height = self.calculate_height()
@@ -99,6 +102,9 @@ class MakeRingCap(pya.PCellDeclarationHelper):
     interdigitated_cap_region = box_region - gap_region
     
     base_region_to_duplicate = interdigitated_cap_region
+#    if not self.connect_neighbor_cap:
+#      base_region_to_duplicate = self.make_arms(base_region_to_duplicate)
+    
     if self.connect_neighbor_cap: 
       base_region_to_duplicate = self.create_single_capacitor_pad(base_region_to_duplicate)
     
@@ -124,13 +130,26 @@ class MakeRingCap(pya.PCellDeclarationHelper):
        
       return region_out
 
+  def make_arms(self, region):
+    """ Make two arms"""
+    dbbox = region.bbox().to_dtype(self.layout.dbu)
+    width = dbbox.width()
+    left_arm = pya.Region.new(pya.DBox.new(-self.arm_length, -self.arm_width, 0,0).to_itype(self.layout.dbu))
+    right_arm = pya.Region.new(pya.DBox.new(width, -self.arm_width, width+self.arm_length, 0).to_itype(self.layout.dbu))
+      
+    return region + left_arm + right_arm
+      
   def rotation_base_region(self, region):
  
      # height = self.calculate_height()
       dbbox = region.bbox().to_dtype(self.layout.dbu)
       height = dbbox.height()
       width = dbbox.width()
-          
+      
+      # add arms
+      if not self.connect_neighbor_cap and not self.connect_neighbor_cap: 
+        region = self.make_arms(region)
+      
       rotation_angle =  self.rotation_cap  # degree
 #      pivot_dpoint = pya.DPoint.new(self.total_width/2, 0) + pya.DPoint.new(0, -height/2)          
       pivot_dpoint = pya.DPoint.new(width/2, 0) + pya.DPoint.new(0, -height/2)          
@@ -245,7 +264,8 @@ class MakeRingCap(pya.PCellDeclarationHelper):
     """
     Calculate interdigitated capacitor.Assumed the substrate is Silicon and no gnd under substrate.
     Ref: Microstrip lines and slotlines by K.C. Gupta et al. 
-    
+    For C expression, see page 133. For effective dielectric constant of a microstrip,
+         see page 8 for w/h &lt; 2 case.
     
     Return:
             Capacitance in fF

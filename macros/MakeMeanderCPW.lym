@@ -45,15 +45,15 @@ class MakeMeanderCPW(pya.PCellDeclarationHelper):
     self.param("cr", self.TypeDouble, "center conductor radius", default = 100)
     self.param("cw", self.TypeDouble, "c.c width", default = 10)
     self.param("gw", self.TypeDouble, "gap width", default = 6)
-    self.param("kw", self.TypeDouble, "keepout width", default = 4)
-    self.param("n", self.TypeInt, "Number of points per 360 degree", default = 72)     
+    self.param("kw", self.TypeDouble, "keepout width", default = 6)
+    self.param("n", self.TypeInt, "Number of points per 360 degree", default = 360)     
     
     self.param("tl", self.TypeDouble, "CPW total length", default = 8000)
     self.param("numq", self.TypeInt, "Number of quarter turns (even num&gt;=6)", default =12)
     self.param("bw", self.TypeDouble, "Bounding box width", default = 2000)
     self.param("bh", self.TypeDouble, "Bounding box height", default = 1600)
-    self.param("xs", self.TypeDouble, "x-coord. of start point", default = 10)
-    self.param("xe", self.TypeDouble, "x-coord. of end point", default = 10)
+    self.param("xs", self.TypeDouble, "x-coord. of start point", default = 0)
+    self.param("xe", self.TypeDouble, "x-coord. of end point", default = 0)
     
     # this hidden parameter is used to determine whether the radius has changed
     # or the "s" handle has been moved
@@ -63,7 +63,9 @@ class MakeMeanderCPW(pya.PCellDeclarationHelper):
   def display_text_impl(self):
     # Provide a descriptive text for the cell
   #  return "MakeMeanderCPW(length=" + str(self.tl) + ",gap width=" + ('%.3f' % self.gw) + ")"
-    return self.name
+
+    return self.name + '_' + f'{int(self.tl)}um'
+#    return self.name
     
   def coerce_parameters_impl(self):
   
@@ -96,8 +98,8 @@ class MakeMeanderCPW(pya.PCellDeclarationHelper):
     if self.numq % 2 == 1:
       self.numq = self.numq -1  
     
-    if self.numq &lt;6:
-      self.numq = 6
+    if self.numq &lt;4:
+      self.numq = 4
       
     # Bounding box height must be larger than N * r.
     while self.numq * self.cr &gt; self.bh:

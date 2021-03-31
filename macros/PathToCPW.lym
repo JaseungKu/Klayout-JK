@@ -43,13 +43,20 @@ class PathToCPW(pya.PCellDeclarationHelper):
     self.param("cr", self.TypeDouble, "center conductor radius", default = 50)
     self.param("cw", self.TypeDouble, "c.c width", default = 10)
     self.param("gw", self.TypeDouble, "gap width", default = 6)
-    self.param("kw", self.TypeDouble, "keepout width", default = 5)
-    self.param("n", self.TypeInt, "Number of points per 360 degree", default = 180)     
+    self.param("kw", self.TypeDouble, "keepout width", default = 6)
+    self.param("n", self.TypeInt, "Number of points per 360 degree", default = 360)     
+    
     
   def display_text_impl(self):
     # Provide a descriptive text for the cell
     #return "CPWfromPath(CC width=" + str(self.cw) + ",gap width=" + ('%.3f' % self.gw) + ")"
-    return self.name
+    
+    cc_dpath = self.s.dup() 
+    cc_dpath.width = self.cw 
+    cc_dpath_rounded = cc_dpath.round_corners(self.cr, self.n, 0.001/2.0)
+    length = cc_dpath_rounded.length()
+    
+    return self.name + '_' + f'{length:.3f}um'
     
   def coerce_parameters_impl(self):
   
@@ -102,7 +109,5 @@ class PathToCPW(pya.PCellDeclarationHelper):
     # create shape
     #self.cell.shapes(self.p_layer).insert(pya.Path.new(cc_dpath.to_itype(self.layout.dbu)))
     self.cell.shapes(self.c_layer).insert(gap_region - cc_region)
-    self.cell.shapes(self.k_layer).insert(keepout_region)
-
-   </text>
+    self.cell.shapes(self.k_layer).insert(keepout_region)   </text>
 </klayout-macro>
