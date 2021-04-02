@@ -16,7 +16,7 @@
  <dsl-interpreter-name/>
  <text>import pya
 '''
-This script is to create flux trap holes on FLUX TRAP layer in the selected cell. The flux trap holes are 4x4 um^2 and 8 um apart center-to-center.
+This script is to creatCPWe flux trap holes on FLUX TRAP layer in the selected cell. The flux trap holes are 4x4 um^2 and 8 um apart center-to-center.
 
 Instruction:  1. Select a cell instance. Make sure the origin of the cell is centered!
               2. Run this script.
@@ -88,7 +88,7 @@ if ly.has_cell('flux_trap_array'):
   flux_array.clear() # make it empty to reuse
 else:
   flux_array = ly.create_cell('flux_trap_array')
-
+CPW
 # create cell instance array
 t = pya.DTrans.new(x_disp, y_disp) 
 flux_Cellinstarray = pya.CellInstArray.new(flux_single_index, t) # CellInstArray created.

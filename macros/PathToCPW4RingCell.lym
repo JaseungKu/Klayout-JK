@@ -17,7 +17,6 @@
  <text># Jaseung Ku, Feb 2021
 # Usage: Draw a path, and select it. Then go to Edit-&gt;Selection-&gt;Convert To Pcel.
 # This PCell takes a path and convert it to a center-conductor and center_conductor+gap.
-# This CPW is for coupling to feedline or qubit pocket. The center_conductor+gap region will be substrated off from shape in IMAGE.
 
 import pya
 import math

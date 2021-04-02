@@ -39,12 +39,13 @@ class PathToCPW(pya.PCellDeclarationHelper):
     self.param("s", self.TypeShape, "", default = pya.DPath.new())   # Use "D-type" shapes
     self.param("name", self.TypeString,"CPW name", default='PathToCPW')
     
-    # parameters in um 
+    # parameters in um shapes_in_IMAGE_layer_region)
+    
     self.param("cr", self.TypeDouble, "center conductor radius", default = 50)
     self.param("cw", self.TypeDouble, "c.c width", default = 10)
     self.param("gw", self.TypeDouble, "gap width", default = 6)
     self.param("kw", self.TypeDouble, "keepout width", default = 6)
-    self.param("n", self.TypeInt, "Number of points per 360 degree", default = 360)     
+    self.param("n", self.TypeInt, "Number of https://www.klayout.de/staging/doc-qt5/code/class_LayoutView.htmlpoints per 360 degree", default = 360)     
     
     
   def display_text_impl(self):

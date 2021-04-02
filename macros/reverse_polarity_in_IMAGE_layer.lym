@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="utf-8"?>
+<klayout-macro>
+ <description>reverse_polarity_in_IMAGE_layer</description>
+ <version/>
+ <category>pymacros</category>
+ <prolog/>
+ <epilog/>
+ <doc/>
+ <autorun>false</autorun>
+ <autorun-early>false</autorun-early>
+ <shortcut/>
+ <show-in-menu>true</show-in-menu>
+ <group-name/>
+ <menu-path>macros_menu.end</menu-path>
+ <interpreter>python</interpreter>
+ <dsl-interpreter-name/>
+ <text># Jaseung, Apr 2021
+# Usage: Select a cell or PCell instance, go to Macro and select reverse_polarity_in_IMAGE_layer.
+# This script reverse polarity of shapes in IMAGE layer within a bounding box in IMAGE BBOX layer.
+
+import pya
+
+def reverse_polarity_in_IMAGE_layer():
+  '''
+  This script reversses the polarity of shapes in IMAGE layer within a rectangleis image bounding box in IMAGE BBOX layer.
+
+  Instruction
+  -----------
+   1. Select a cell instance.
+   2. Run this script (go to Macro menu).        
+  '''  
+
+  # from user interface, get layout object
+  app = pya.Application.instance()
+  mw = app.main_window()
+  lv = mw.current_view() # layoutview for current layout tab
+  cv = lv.active_cellview() # cellview
+  ly = cv.layout() # layout object that contains cell shown. layout = collection of cells and geometrical shapes
+
+  # This makes undo possible, but undo doesn't always work. 
+  lv.transaction("Reverse polarity") 
+
+  # Get the selected cell instances.
+  sel = lv.object_selection # a list of selected objects
+
+  for obj in sel:  
+    print(obj.inst().cell.child_instances())
+    print(obj.inst().cell.child_cells())
+    if obj.is_cell_inst() and obj.inst().cell.child_instances()==0 and obj.inst().cell.child_cells()==0:
+      print(obj.is_cell_inst())
+      obj.inst().cell.child_instances()
+      cell_inst = obj.inst()
+           
+      layer_IMAGE, datatype_IMAGE = 1, 0    # IMAGE layer
+      layer_IMAGE_BBOX, datatype_IMAGE_BBOX = 0, 3    # IMAGE layer
+      layerinfo_IMAGE = pya.LayerInfo.new(layer_IMAGE, datatype_IMAGE)
+      layerinfo_IMAGE_BBOX = pya.LayerInfo.new(layer_IMAGE_BBOX, datatype_IMAGE_BBOX)
+      
+      bbox = cell_inst.cell.shapes(ly.layer(layerinfo_IMAGE_BBOX))
+      bbox_region = pya.Region.new(bbox)
+      shapes = cell_inst.cell.shapes(ly.layer(layerinfo_IMAGE)) #ly.begin_shapes(obj.cell_index(), ly.layer(layerinfo))
+      shapes_in_IMAGE_layer_region = pya.Region.new(shapes)
+      
+      cell_inst.cell.shapes(ly.layer(layerinfo_IMAGE)).clear()
+      cell_inst.cell.shapes(ly.layer(layerinfo_IMAGE)).insert(bbox_region - shapes_in_IMAGE_layer_region)
+    
+  
+  lv.commit()  
+  
+# execute function
+reverse_polarity_in_IMAGE_layer()  </text>
+</klayout-macro>
