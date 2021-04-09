@@ -36,7 +36,7 @@ class MakeInterdigitatedCap(pya.PCellDeclarationHelper):
     self.param("c", self.TypeLayer, "IMAGE Layer", default = pya.LayerInfo(1, 0))
 #    self.param("i", self.TypeLayer, "IMAGE BBOX Layer", default = pya.LayerInfo(0, 3))
 #    self.param("s", self.TypeShape, "", default = pya.Path.new())
-   
+    
     self.param("name", self.TypeString, "Name", default='IDC')
      
     # parameter in um 
@@ -45,7 +45,7 @@ class MakeInterdigitatedCap(pya.PCellDeclarationHelper):
     self.param("finger_width", self.TypeDouble, "Finger width", default = 4)
     self.param("finger_gap", self.TypeDouble, "Finger gap", default = 1)    
     self.param("num_fingers", self.TypeInt, "Number of fingers", default = 20)     
-       
+    self.param("pos_polarity", self.TypeBoolean, "Positive polarity?", default=False)
     # this hidden parameter is used to determine whether the radius has changed
     # or the "s" handle has been moved
     #self.param("ru", self.TypeDouble, "Radius", default = 0.0, hidden = True)
@@ -100,8 +100,13 @@ class MakeInterdigitatedCap(pya.PCellDeclarationHelper):
     box_region = pya.Region.new(pya.Box.new(dbox.to_itype(self.layout.dbu)))
  
     # create shape
-    self.cell.shapes(self.c_layer).insert(box_region - gap_region)
-
+    if self.pos_polarity:
+      self.cell.shapes(self.c_layer).insert(box_region - gap_region)
+    else:
+      self.cell.shapes(self.c_layer).insert(gap_region)  
+  
+    self.center_cell_origin()
+    
   def create_path(self):
     
     # create path points
@@ -159,5 +164,25 @@ class MakeInterdigitatedCap(pya.PCellDeclarationHelper):
     C_interdigital = (epsilon_re/18/np.pi)*(ellipk(k)/ellipk(k_p)) \
                     *(self.num_fingers-1)*self.finger_length
     
-    return C_interdigital</text>
+    return C_interdigital
+  
+  def center_cell_origin(self):
+    """
+    This script is to adjust origin to the center of bounding box for PCell.
+    """  
+    layerlist = self.layout.layer_indexes()
+    
+    bbox = self.cell.bbox() 
+    center_pnt = bbox.center()
+    
+    # This is equivalent to "Edit-&gt;Cell-&gt;Adjust Origin with 1) "Adjust instances in parents" undchecked
+    # 2) Put origin relative to cell's bounding box AT 'center'.
+    for layer in layerlist:
+        shapes = self.cell.shapes(layer)
+        shapes.transform(pya.Trans.new(-center_pnt.x, -center_pnt.y))
+        
+    # shift the cell instances in parent instances (equivalent to "Adjust instances in parents" in Edit-&gt;Cell-&gt;Adjust Origin).
+    # This makes the cell not shifte in its parent instances after the origin of the cell is adjusted.
+    for parent_inst in self.cell.each_parent_inst():
+      parent_inst.child_inst().transform(pya.Trans.new(center_pnt.x, center_pnt.y))</text>
 </klayout-macro>

@@ -88,7 +88,7 @@ if ly.has_cell('flux_trap_array'):
   flux_array.clear() # make it empty to reuse
 else:
   flux_array = ly.create_cell('flux_trap_array')
-CPW
+
 # create cell instance array
 t = pya.DTrans.new(x_disp, y_disp) 
 flux_Cellinstarray = pya.CellInstArray.new(flux_single_index, t) # CellInstArray created.

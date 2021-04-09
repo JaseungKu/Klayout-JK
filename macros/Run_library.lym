@@ -43,6 +43,7 @@ class MyLib(pya.Library):
     self.layout().register_pcell("MakeRingGND", MakeRingGND())
 #    self.layout().register_pcell("PathToCPWPlus", PathToCPWPlus())
     self.layout().register_pcell("PathToCPW4RingCell", PathToCPW4RingCell())
+    self.layout().register_pcell("MakeGroudIDC", MakeGroudIDC())
   
     # That would be the place to put in more PCells ...
     

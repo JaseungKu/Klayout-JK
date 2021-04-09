@@ -16,7 +16,7 @@
  <dsl-interpreter-name/>
  <text># Jaseung, Apr 2021
 # Usage: Select a cell or PCell instance, go to Macro menu and select flatten_all.
-# This script flattens all the selected cell to all hiarachy.
+# This script flattens all the selected cell to all hierarchy.
 
 import pya
 

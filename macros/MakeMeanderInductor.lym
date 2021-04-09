@@ -128,7 +128,7 @@ class MakeMeanderInductor(pya.PCellDeclarationHelper):
     # Give offset of both ends
     pts[0] = pts[0] + pya.DPoint.new(self.end_offset, 0)
     pts[1] = pts[1] + pya.DPoint.new(self.end_offset, 0)
-    
+    210
     if self.n % 2 ==0:
       pts[-1] = pts[-1] + pya.DPoint.new(-self.end_offset, 0)
       pts[-2] = pts[-2] + pya.DPoint.new(-self.end_offset, 0)

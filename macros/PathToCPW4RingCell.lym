@@ -34,7 +34,7 @@ class PathToCPW4RingCell(pya.PCellDeclarationHelper):
     # declare the parameters
     #self.param("l", self.TypeLayer, "Layer", default = pya.LayerInfo(1, 0))
     self.param("p", self.TypeLayer, "OUTLINE Layer", default = pya.LayerInfo(0, 2))
-#    self.param("k", self.TypeLayer, "KEEPOUT Layer", default = pya.LayerInfo(0, 1))
+    self.param("k", self.TypeLayer, "KEEPOUT Layer", default = pya.LayerInfo(0, 1))
     self.param("c", self.TypeLayer, "IMAGE Layer", default = pya.LayerInfo(1, 0))
     self.param("s", self.TypeShape, "", default = pya.DPath.new())   # Use "D-type" shapes
     self.param("name", self.TypeString,"CPW name", default='PathToCPW4RingCell')
@@ -81,26 +81,29 @@ class PathToCPW4RingCell(pya.PCellDeclarationHelper):
        
     # create three paths based on parameter of selected path
     cc_dpath = self.s.dup() 
+    gap_dpath = self.s.dup()
     gap_and_cc_dpath = self.s.dup()
-#    keepout_dpath = self.s.dup()
+    keepout_dpath = self.s.dup()
     
     # set width of each path
     cc_dpath.width = self.cw 
     gap_and_cc_dpath.width = cc_dpath.width + self.gw * 2.0 
-#    keepout_dpath.width = gap_dpath.width + self.kw * 2.0  
+    gap_dpath.width = cc_dpath.width + self.gw * 2.0
+    keepout_dpath.width = gap_dpath.width + self.kw * 2.0  
     
     # round path
     cc_dpath_rounded = cc_dpath.round_corners(self.cr, self.n, self.layout.dbu/2.0)
     gap_and_cc_dpath_rounded = gap_and_cc_dpath.round_corners(self.cr, self.n, self.layout.dbu/2.0)
-#    keepout_dpath_rounded = keepout_dpath.round_corners(self.cr, self.n, self.layout.dbu/2.0)
+    keepout_dpath_rounded = keepout_dpath.round_corners(self.cr, self.n, self.layout.dbu/2.0)
     
     # turn path to region to do boolean operation
     cc_region = pya.Region.new(pya.Path.new(cc_dpath_rounded.to_itype(self.layout.dbu)))  # to_itype method to translate the floating-point coordinate path in micron units to an integer-coordinate path in database units.
     gap_and_cc_region = pya.Region.new(pya.Path.new(gap_and_cc_dpath_rounded.to_itype(self.layout.dbu)))
- #   keepout_region = pya.Region.new(pya.Path.new(keepout_dpath_rounded.to_itype(self.layout.dbu)))
+    keepout_region = pya.Region.new(pya.Path.new(keepout_dpath_rounded.to_itype(self.layout.dbu)))
  
     # create shape
     #self.cell.shapes(self.p_layer).insert(pya.Path.new(cc_dpath.to_itype(self.layout.dbu)))
     self.cell.shapes(self.c_layer).insert(cc_region)
-    self.cell.shapes(self.p_layer).insert(gap_and_cc_region)   </text>
+    self.cell.shapes(self.p_layer).insert(gap_and_cc_region)   
+    self.cell.shapes(self.k_layer).insert(keepout_region)   </text>
 </klayout-macro>

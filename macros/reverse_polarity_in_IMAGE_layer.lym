@@ -17,6 +17,8 @@
  <text># Jaseung, Apr 2021
 # Usage: Select a cell or PCell instance, go to Macro and select reverse_polarity_in_IMAGE_layer.
 # This script reverse polarity of shapes in IMAGE layer within a bounding box in IMAGE BBOX layer.
+# Requirement: image bounding box in IMAGE BBOX
+#              no PCell, but a static cell.               
 
 import pya
 
