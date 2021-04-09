@@ -1,0 +1,191 @@
+<?xml version="1.0" encoding="utf-8"?>
+<klayout-macro>
+ <description/>
+ <version/>
+ <category>pymacros</category>
+ <prolog/>
+ <epilog/>
+ <doc/>
+ <autorun>true</autorun>
+ <autorun-early>false</autorun-early>
+ <shortcut/>
+ <show-in-menu>false</show-in-menu>
+ <group-name/>
+ <menu-path/>
+ <interpreter>python</interpreter>
+ <dsl-interpreter-name/>
+ <text># Jaseung Ku, Apr 2021
+
+import pya
+from scipy.special import ellipk
+import numpy as np
+
+class MakeGroudIDC(pya.PCellDeclarationHelper):
+  """
+  The PCell declaration for MakeGroudIDC. This is a standalone PCell.
+  """
+
+  def __init__(self):
+
+    # Important: initialize the super class
+    super(MakeGroudIDC, self).__init__()
+
+    # declare the parameters
+#    self.param("p", self.TypeLayer, "OUTLINE Layer", default = pya.LayerInfo(0, 2))
+#    self.param("k", self.TypeLayer, "KEEPOUT Layer", default = pya.LayerInfo(0, 1))
+    self.param("c", self.TypeLayer, "IMAGE Layer", default = pya.LayerInfo(1, 0))
+#    self.param("i", self.TypeLayer, "IMAGE BBOX Layer", default = pya.LayerInfo(0, 3))
+#    self.param("s", self.TypeShape, "", default = pya.Path.new())
+    
+    self.param("name", self.TypeString, "Name", default='IDC')
+     
+    # parameter in um 
+    self.param("total_width", self.TypeDouble, "Total width", default = 100)
+    self.param("finger_length", self.TypeDouble, "Finger length", default = 80)
+    self.param("finger_width", self.TypeDouble, "Finger width", default = 4)
+    self.param("ground_width", self.TypeDouble, "Ground line width", default = 2)
+    self.param("ground_end_ext", self.TypeDouble, "Ground end extension", default = 10)
+    self.param("finger_gap", self.TypeDouble, "Finger gap", default = 8)    
+    self.param("num_fingers", self.TypeInt, "Number of fingers", default = 4)     
+    # this hidden parameter is used to determine whether the radius has changed
+    # or the "s" handle has been moved
+    #self.param("ru", self.TypeDouble, "Radius", default = 0.0, hidden = True)
+    #self.param("rd", self.TypeDouble, "Double radius", readonly = True)
+
+  def display_text_impl(self):
+    # Provide a descriptive text for the cell
+  #  return "MakeInterdigitatedCap(length=" + str(self.tl) + ",gap width=" + ('%.3f' % self.gw) + ")"
+    C  = self.calculate_interdigitated_capacitance()
+
+    return f'{self.name}_C={C:.1f}fF'
+#    return f'l={int(self.finger_length)}_w={int(self.finger_width)}_g={int(self.finger_gap)}_N={int(self.n)}_tw={int(self.total_width)}' 
+    
+  def coerce_parameters_impl(self):
+  
+    # We employ coerce_parameters_impl to decide whether the handle or the 
+    # numeric parameter has changed (by comparing against the effective 
+    # radius ru) and set ru to the effective radius. We also update the 
+    # numerical value or the shape, depending on which one has not changed.
+     
+    if self.num_fingers &lt; 2:
+      self.num_fingers = 2
+      
+          
+  def can_create_from_shape_impl(self):
+    # Implement the "Create PCell from shape" protocol: we can use any shape which 
+    # has a finite bounding box
+    return False
+  
+  #def parameters_from_shape_impl(self):
+    # Implement the "Create PCell from shape" protocol: we set r and l from the shape's 
+    # bounding box width and layer
+    # self.tmp = self.shape.bbox().width() * self.layout.dbu / 2
+    #self.l = self.layout.get_info(self.layer)
+    #self.s = self.shape.path # read selected path obj.
+                      
+  #def transformation_from_shape_impl(self):
+    # Implement the "Create PCell from shape" protocol: we use the center of the shape's
+    # bounding box to determine the transformation
+    #return pya.Trans(self.shape.bbox().center())
+       
+  def produce_impl(self):
+         
+    # create a path
+    gap_dpath = self.create_path()  # in um unit
+    ground_dpath = gap_dpath.dup()
+    ground_dpath.width =  self.ground_width
+    ground_dpath.bgn_ext = self.ground_end_ext
+    ground_dpath.end_ext = self.ground_end_ext
+    
+    height = gap_dpath.bbox().height()
+#    height = self.calculate_height()
+    dbox = pya.DBox.new(0, -height, self.total_width, 0)  # top-left corner is origin, i.e., (0,0).
+               
+    # turn path and box to region to do boolean operation
+    gap_region = pya.Region.new(pya.Path.new(gap_dpath.to_itype(self.layout.dbu)))  # to_itype method to translate the floating-point coordinate path in micron units to an integer-coordinate path in database units.
+    ground_region = pya.Region.new(pya.Path.new(ground_dpath.to_itype(self.layout.dbu)))
+    box_region = pya.Region.new(pya.Box.new(dbox.to_itype(self.layout.dbu)))
+ 
+    self.cell.shapes(self.c_layer).insert(box_region - gap_region + ground_region)
+  
+    self.center_cell_origin()
+    
+  def create_path(self):
+    
+    # create path points
+    path_starting_pnt = pya.DPoint.new((self.total_width - self.finger_length - self.finger_gap)/2, 0)
+    
+    pts = [path_starting_pnt]
+    delta_vertical_endpoint = pya.DPoint.new(0, -self.finger_width - self.finger_gap/2)
+    delta_vertical_notendpoint = pya.DPoint.new(0, -self.finger_width - self.finger_gap)
+    delta_horizontal = pya.DPoint.new(self.finger_length+self.finger_gap, 0)
+    
+    num_deltas = 2* self.num_fingers - 1
+    
+    # get deltas except first and last delta
+    deltas = []
+    for i in range(1, num_deltas-1):
+      if i%2==0:
+        deltas.append(delta_vertical_notendpoint)
+      else:
+        deltas.append(delta_horizontal)  
+        delta_horizontal = delta_horizontal * (-1)
+        
+    # insert start and end delta
+    deltas.insert(0, delta_vertical_endpoint)
+    deltas.append(delta_vertical_endpoint)
+    
+    # create path points
+    for i in range(num_deltas):
+      pts.append(pts[-1] + deltas[i])
+         
+    created_path = pya.DPath.new(pts, self.finger_gap) # in um 
+  
+    return created_path
+
+  def calculate_interdigitated_capacitance(self):
+    """
+    Calculate interdigitated capacitor.Assumed the substrate is Silicon and no gnd under substrate.
+    Ref: Microstrip lines and slotlines by K.C. Gupta et al. 
+    
+    
+    Return:
+            Capacitance in fF
+    """
+    h = 525 # thickness of Si in um
+    w = 4 # width in um
+    
+    a = self.finger_width/2
+    b = (self.finger_width + self.finger_gap)/2
+    
+    k = np.tan(a*np.pi/4/b)**2
+    k_p = np.sqrt(1-k**2)
+
+    e_r = 11.9
+    epsilon_re = (e_r + 1)/2 + (e_r-1)/2*(np.log(np.pi/2)+(1/e_r)*np.log(4/np.pi))/np.log(8*h/w)        
+        
+    C_interdigital = (epsilon_re/18/np.pi)*(ellipk(k)/ellipk(k_p)) \
+                    *(self.num_fingers-1)*self.finger_length
+    
+    return C_interdigital
+  
+  def center_cell_origin(self):
+    """
+    This script is to adjust origin to the center of bounding box for PCell.
+    """  
+    layerlist = self.layout.layer_indexes()
+    
+    bbox = self.cell.bbox() 
+    center_pnt = bbox.center()
+    
+    # This is equivalent to "Edit-&gt;Cell-&gt;Adjust Origin with 1) "Adjust instances in parents" undchecked
+    # 2) Put origin relative to cell's bounding box AT 'center'.
+    for layer in layerlist:
+        shapes = self.cell.shapes(layer)
+        shapes.transform(pya.Trans.new(-center_pnt.x, -center_pnt.y))
+        
+    # shift the cell instances in parent instances (equivalent to "Adjust instances in parents" in Edit-&gt;Cell-&gt;Adjust Origin).
+    # This makes the cell not shifte in its parent instances after the origin of the cell is adjusted.
+    for parent_inst in self.cell.each_parent_inst():
+      parent_inst.child_inst().transform(pya.Trans.new(center_pnt.x, center_pnt.y))</text>
+</klayout-macro>
