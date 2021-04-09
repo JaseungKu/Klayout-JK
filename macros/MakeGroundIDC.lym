@@ -32,9 +32,9 @@ class MakeGroudIDC(pya.PCellDeclarationHelper):
 
     # declare the parameters
 #    self.param("p", self.TypeLayer, "OUTLINE Layer", default = pya.LayerInfo(0, 2))
-#    self.param("k", self.TypeLayer, "KEEPOUT Layer", default = pya.LayerInfo(0, 1))
+    self.param("k", self.TypeLayer, "KEEPOUT Layer", default = pya.LayerInfo(0, 1))
     self.param("c", self.TypeLayer, "IMAGE Layer", default = pya.LayerInfo(1, 0))
-#    self.param("i", self.TypeLayer, "IMAGE BBOX Layer", default = pya.LayerInfo(0, 3))
+    self.param("i", self.TypeLayer, "IMAGE BBOX Layer", default = pya.LayerInfo(0, 3))
 #    self.param("s", self.TypeShape, "", default = pya.Path.new())
     
     self.param("name", self.TypeString, "Name", default='IDC')
@@ -46,6 +46,10 @@ class MakeGroudIDC(pya.PCellDeclarationHelper):
     self.param("ground_width", self.TypeDouble, "Ground line width", default = 2)
     self.param("ground_end_ext", self.TypeDouble, "Ground end extension", default = 10)
     self.param("finger_gap", self.TypeDouble, "Finger gap", default = 8)    
+    self.param("taper_length", self.TypeDouble, "Taper length", default = 100)
+    self.param("cc_width", self.TypeDouble, "CPW center conductor width", default = 10)    
+    self.param("gap_width", self.TypeDouble, "CPW gap width", default = 6)    
+    self.param("keepout_width", self.TypeDouble, "Keepout width", default = 6)    
     self.param("num_fingers", self.TypeInt, "Number of fingers", default = 4)     
     # this hidden parameter is used to determine whether the radius has changed
     # or the "s" handle has been moved
@@ -85,31 +89,108 @@ class MakeGroudIDC(pya.PCellDeclarationHelper):
                       
   #def transformation_from_shape_impl(self):
     # Implement the "Create PCell from shape" protocol: we use the center of the shape's
-    # bounding box to determine the transformation
+    # bounding box to determine tground_taper_region - gap_taper_he transformation
     #return pya.Trans(self.shape.bbox().center())
        
   def produce_impl(self):
          
     # create a path
     gap_dpath = self.create_path()  # in um unit
+    
     ground_dpath = gap_dpath.dup()
     ground_dpath.width =  self.ground_width
     ground_dpath.bgn_ext = self.ground_end_ext
     ground_dpath.end_ext = self.ground_end_ext
     
-    height = gap_dpath.bbox().height()
-#    height = self.calculate_height()
-    dbox = pya.DBox.new(0, -height, self.total_width, 0)  # top-left corner is origin, i.e., (0,0).
-               
+    gap_dpath_bbox_height = gap_dpath.bbox().height()
+    ground_dpath_bbox_height = ground_dpath.bbox().height()
+    
+    gap_bbox = gap_dpath.bbox()
+    gap_bbox_width = gap_bbox.width()
+    gap_bbox.left = gap_bbox.left - (self.total_width-gap_bbox_width)/2
+    gap_bbox.right = gap_bbox.right + (self.total_width-gap_bbox_width)/2
+    
+    ground_bbox = ground_dpath.bbox()
+    ground_bbox_width = ground_bbox.width()
+    ground_bbox.left = ground_bbox.left - (self.total_width-ground_bbox_width)/2
+    ground_bbox.right = ground_bbox.right + (self.total_width-ground_bbox_width)/2
+    
+    #gap_dbox = pya.DBox.new(-self.total_width/2, -gap_dpath_bbox_height/2, self.total_width/2, gap_dpath_bbox_height/2)  # center is (0,0). total_width given by a user
+    #ground_dbox = pya.DBox.new(-self.total_width/2, -ground_dpath_bbox_height/2, self.total_width/2, ground_dpath_bbox_height/2)               
+    
     # turn path and box to region to do boolean operation
     gap_region = pya.Region.new(pya.Path.new(gap_dpath.to_itype(self.layout.dbu)))  # to_itype method to translate the floating-point coordinate path in micron units to an integer-coordinate path in database units.
     ground_region = pya.Region.new(pya.Path.new(ground_dpath.to_itype(self.layout.dbu)))
-    box_region = pya.Region.new(pya.Box.new(dbox.to_itype(self.layout.dbu)))
- 
-    self.cell.shapes(self.c_layer).insert(box_region - gap_region + ground_region)
-  
-    self.center_cell_origin()
+    gap_box_region = pya.Region.new(pya.Box.new(gap_bbox.to_itype(self.layout.dbu)))
+    ground_box_region = pya.Region.new(pya.Box.new(ground_bbox.to_itype(self.layout.dbu)))
     
+    # make IDC part
+#    self.cell.shapes(self.c_layer).insert(gap_box_region - gap_region + ground_region)
+    idc_region = ground_box_region - gap_box_region + gap_region - ground_region
+    self.cell.shapes(self.c_layer).insert(idc_region) 
+    
+    # make/add taper region
+    ground_taper_region = self.get_taper_region(ground_bbox, self.cc_width + self.gap_width*2)
+    gap_taper_region = self.get_taper_region(gap_bbox, self.cc_width)
+
+    self.cell.shapes(self.c_layer).insert(ground_taper_region - gap_taper_region)      
+  
+    # make keepout region
+    keepout_region = self.get_keepout_region(ground_taper_region + ground_box_region)
+    
+    self.cell.shapes(self.k_layer).insert(keepout_region)      
+
+    # make image bounding box
+    image_bbox_region = keepout_region.bbox()
+    
+    self.cell.shapes(self.i_layer).insert(image_bbox_region)      
+    
+    # center cell originy
+    self.center_cell_origin()
+
+  def get_keepout_region(self, region):
+
+    keepout_points = []
+    
+    for poly in region.each_merged():
+      y_coordinates = [pnt.y for pnt in poly.each_point_hull()]
+    
+    threshold = (np.max(y_coordinates) + np.min(y_coordinates)) / 2
+          
+    for poly in region.each_merged():
+      for pnt in poly.each_point_hull():
+          if pnt.y &gt; threshold:
+            pnt.y = pnt.y + self.keepout_width / self.layout.dbu
+            keepout_points.append(pnt)
+          else:
+            pnt.y = pnt.y - self.keepout_width / self.layout.dbu
+            keepout_points.append(pnt)
+
+    keepout_region = pya.Region.new(pya.Polygon.new(keepout_points))
+    
+    return keepout_region
+  
+  def get_taper_region(self, bbox, taper_width):
+      """ bbox : DBox """
+
+      p1 = bbox.p1
+      p2 = p1 + pya.DVector.new(-self.taper_length, (bbox.height()-taper_width)/2)
+      p3 = p2 + pya.DVector.new(0, taper_width)
+      p4 = bbox.p1 + pya.DVector.new(0, bbox.height())
+      
+      left_taper_points = [p1, p2, p3, p4]
+      left_taper = pya.Region.new(pya.DPolygon.new(left_taper_points).to_itype(self.layout.dbu))
+      
+      p1 = bbox.p2
+      p2 = p1 + pya.DVector.new(self.taper_length, -(bbox.height()-taper_width)/2)
+      p3 = p2 + pya.DVector.new(0, -taper_width)
+      p4 = bbox.p2 + pya.DVector.new(0, -bbox.height())
+      
+      right_taper_points = [p1, p2, p3, p4]
+      right_taper = pya.Region.new(pya.DPolygon.new(right_taper_points).to_itype(self.layout.dbu))
+
+      return left_taper + right_taper
+
   def create_path(self):
     
     # create path points
